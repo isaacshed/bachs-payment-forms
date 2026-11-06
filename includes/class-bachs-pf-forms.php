@@ -16,6 +16,12 @@ class Bachs_PF_Forms {
 	const META_SETTINGS = '_bachs_pf_settings';
 	const META_PRODUCTS = '_bachs_pf_products';
 
+	/**
+	 * Admin menu icon: the Bachs logo (rounded square with two bars) as a one-colour SVG, so
+	 * WordPress tints it to match the admin colour scheme. Source: assets/images/menu-icon.svg.
+	 */
+	const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTYgMjU2Ij48cGF0aCBmaWxsPSJibGFjayIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNNDAgMGgxNzZhNDAgNDAgMCAwIDEgNDAgNDB2MTc2YTQwIDQwIDAgMCAxLTQwIDQwSDQwYTQwIDQwIDAgMCAxLTQwLTQwVjQwQTQwIDQwIDAgMCAxIDQwIDBaTTY0IDgwdjQwaDkyYTIwIDIwIDAgMCAwIDAtNDBINjRabTAgNTZ2NDBoMTA4YTIwIDIwIDAgMCAwIDAtNDBINjRaIi8+PC9zdmc+Cg==';
+
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register_post_type' ) );
 	}
@@ -49,7 +55,7 @@ class Bachs_PF_Forms {
 				'publicly_queryable'  => false,
 				'has_archive'         => false,
 				'rewrite'             => false,
-				'menu_icon'           => 'dashicons-money-alt',
+				'menu_icon'           => self::MENU_ICON,
 				'supports'            => array( 'title', 'editor' ),
 				'map_meta_cap'        => false,
 				'capabilities'        => array(
