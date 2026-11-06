@@ -1,0 +1,22 @@
+/* Bachs Payment Forms: light, theme-friendly defaults. */
+.bachs-pf { max-width: 560px; margin: 1.5em 0; }
+.bachs-pf-form, .bachs-pf-retry { display: grid; gap: 1em; }
+.bachs-pf-field label, .bachs-pf-field legend { display: block; font-weight: 600; margin-bottom: .35em; }
+.bachs-pf-field fieldset { border: 0; margin: 0; padding: 0; }
+.bachs-pf-field fieldset label, .bachs-pf-options label, .bachs-pf-terms label { font-weight: normal; display: flex; align-items: center; gap: .5em; margin: .25em 0; }
+.bachs-pf-options { border: 0; margin: 0; padding: 0; }
+.bachs-pf-field input:not([type="checkbox"]):not([type="radio"]), .bachs-pf-field select, .bachs-pf-field textarea { width: 100%; box-sizing: border-box; }
+.bachs-pf-field small { display: block; margin-top: .25em; opacity: .75; }
+.bachs-pf-required { color: #b32d2e; }
+.bachs-pf-price { margin-left: auto; font-variant-numeric: tabular-nums; }
+.bachs-pf-fixed strong { font-size: 1.25em; }
+.bachs-pf-cadence { opacity: .8; }
+.bachs-pf-total { font-size: 1.15em; font-weight: 600; margin: 0; font-variant-numeric: tabular-nums; }
+.bachs-pf-total:empty, .bachs-pf-message:empty { display: none; }
+.bachs-pf-message { padding: .75em 1em; border-radius: 6px; background: rgba(0, 0, 0, .05); }
+.bachs-pf-message.is-error { background: #fcf0f1; color: #8a2424; }
+.bachs-pf-button { cursor: pointer; }
+.bachs-pf-form.is-busy .bachs-pf-button { opacity: .6; cursor: progress; }
+.bachs-pf-secure { font-size: .875em; opacity: .7; margin: 0; }
+.bachs-pf-success { font-size: 1.1em; }
+.bachs-pf-notice { padding: .75em 1em; border-left: 4px solid #dba617; background: rgba(219, 166, 23, .08); }

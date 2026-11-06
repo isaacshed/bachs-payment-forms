@@ -1,0 +1,5 @@
+.bachs-pf-settings textarea.code { font-family: Menlo, Consolas, monospace; }
+.bachs-pf-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; background: #f0f0f1; }
+.bachs-pf-status-paid { background: #d1e7dd; color: #0a3622; }
+.bachs-pf-status-review { background: #fff3cd; color: #664d03; }
+.bachs-pf-status-failed, .bachs-pf-status-expired { background: #f8d7da; color: #58151c; }
