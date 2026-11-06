@@ -146,37 +146,38 @@ class Bachs_PF_Payments {
 	 * Atomically move a payment from one of $from to $to. Only one request can win, so side
 	 * effects (emails, stock) run exactly once even when webhooks are delivered twice.
 	 *
+	 * Each UPDATE matches on the current status, so it only changes the row while it is still
+	 * in that status; a payment is in one status at a time, so at most one of them succeeds.
+	 *
 	 * @param int      $id
 	 * @param string[] $from
 	 * @param string   $to
-	 * @param array    $data Extra columns to set.
+	 * @param array    $data Extra columns to set (null writes NULL).
 	 * @return bool Whether this call made the change.
 	 */
 	public static function transition( $id, $from, $to, $data = array() ) {
 		global $wpdb;
 
-		$data           = self::encode( $data );
-		$data['status'] = $to;
+		$data               = self::encode( $data );
+		$data['status']     = $to;
 		$data['updated_at'] = current_time( 'mysql', true );
 
-		$sets   = array();
-		$values = array();
-		foreach ( $data as $column => $value ) {
-			$sets[]   = '%i = ' . ( null === $value ? 'NULL' : '%s' );
-			$values[] = $column;
-			if ( null !== $value ) {
-				$values[] = (string) $value;
+		foreach ( array_values( $from ) as $status ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table; a status change must hit the database.
+			$rows = $wpdb->update(
+				self::table(),
+				$data,
+				array(
+					'id'     => (int) $id,
+					'status' => (string) $status,
+				)
+			);
+			if ( 1 === (int) $rows ) {
+				return true;
 			}
 		}
 
-		$in       = implode( ',', array_fill( 0, count( $from ), '%s' ) );
-		$sql      = 'UPDATE %i SET ' . implode( ', ', $sets ) . " WHERE id = %d AND status IN ($in)";
-		$prepared = array_merge( array( self::table() ), $values, array( (int) $id ), array_values( $from ) );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Built from %i/%s/%d placeholders only.
-		$rows = $wpdb->query( $wpdb->prepare( $sql, $prepared ) );
-
-		return 1 === (int) $rows;
+		return false;
 	}
 
 	/**
@@ -188,12 +189,14 @@ class Bachs_PF_Payments {
 	}
 
 	/**
-	 * @param string $column id|reference|checkout_id|subscription_id|charge_id
+	 * Find one payment by a unique-ish column.
+	 *
+	 * @param string $column          id|reference|checkout_id|subscription_id|charge_id
 	 * @param mixed  $value
-	 * @param array  $extra Extra equality conditions.
+	 * @param bool   $top_level_only  Only first payments (not renewals or duplicates).
 	 * @return object|null
 	 */
-	public static function get_by( $column, $value, $extra = array() ) {
+	public static function get_by( $column, $value, $top_level_only = false ) {
 		global $wpdb;
 
 		$allowed = array( 'id', 'reference', 'checkout_id', 'subscription_id', 'charge_id' );
@@ -201,22 +204,36 @@ class Bachs_PF_Payments {
 			return null;
 		}
 
-		$where  = '%i = %s';
-		$values = array( self::table(), $column, (string) $value );
-		foreach ( $extra as $key => $val ) {
-			$where   .= ' AND %i = %s';
-			$values[] = $key;
-			$values[] = (string) $val;
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table, live payment state.
+		if ( $top_level_only ) {
+			$row = $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM %i WHERE %i = %s AND parent_id = 0 ORDER BY id ASC LIMIT 1',
+					self::table(),
+					$column,
+					(string) $value
+				)
+			);
+		} else {
+			$row = $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM %i WHERE %i = %s ORDER BY id ASC LIMIT 1',
+					self::table(),
+					$column,
+					(string) $value
+				)
+			);
 		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Placeholders only.
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM %i WHERE {$where} ORDER BY id ASC LIMIT 1", $values ) );
+		// phpcs:enable
 
 		return $row ? self::decode( $row ) : null;
 	}
 
 	/**
 	 * List payments for the admin.
+	 *
+	 * The SQL is fixed: each filter is written so it switches itself off when empty (form 0,
+	 * status '', search ''), so only placeholder values change between calls.
 	 *
 	 * @param array $args form_id, status, search, orderby, order, per_page, page.
 	 * @return array{items: object[], total: int}
@@ -237,35 +254,68 @@ class Bachs_PF_Payments {
 			)
 		);
 
-		$where  = array( '1=1' );
-		$values = array();
-
-		if ( $args['form_id'] ) {
-			$where[]  = 'form_id = %d';
-			$values[] = (int) $args['form_id'];
-		}
-		if ( '' !== $args['status'] ) {
-			$where[]  = 'status = %s';
-			$values[] = (string) $args['status'];
-		}
-		if ( '' !== $args['search'] ) {
-			$like     = '%' . $wpdb->esc_like( (string) $args['search'] ) . '%';
-			$where[]  = '(email LIKE %s OR name LIKE %s OR reference LIKE %s)';
-			$values[] = $like;
-			$values[] = $like;
-			$values[] = $like;
-		}
-
+		$table   = self::table();
+		$form_id = (int) $args['form_id'];
+		$status  = (string) $args['status'];
+		$search  = (string) $args['search'];
+		$like    = '%' . $wpdb->esc_like( $search ) . '%';
 		$orderby = in_array( $args['orderby'], array( 'created_at', 'paid_at', 'amount', 'email', 'status' ), true ) ? $args['orderby'] : 'created_at';
-		$order   = 'ASC' === strtoupper( (string) $args['order'] ) ? 'ASC' : 'DESC';
 		$limit   = max( 1, (int) $args['per_page'] );
 		$offset  = max( 0, ( (int) $args['page'] - 1 ) * $limit );
 
-		$where_sql = implode( ' AND ', $where );
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table, admin list of live payments.
+		$total = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i WHERE ( %d = 0 OR form_id = %d ) AND ( %s = '' OR status = %s ) AND ( %s = '' OR email LIKE %s OR name LIKE %s OR reference LIKE %s )",
+				$table,
+				$form_id,
+				$form_id,
+				$status,
+				$status,
+				$search,
+				$like,
+				$like,
+				$like
+			)
+		);
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Placeholders only; $orderby/$order are allow-listed.
-		$total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$where_sql}", array_merge( array( self::table() ), $values ) ) );
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE {$where_sql} ORDER BY {$orderby} {$order}, id {$order} LIMIT %d OFFSET %d", array_merge( array( self::table() ), $values, array( $limit, $offset ) ) ) );
+		if ( 'ASC' === strtoupper( (string) $args['order'] ) ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT * FROM %i WHERE ( %d = 0 OR form_id = %d ) AND ( %s = '' OR status = %s ) AND ( %s = '' OR email LIKE %s OR name LIKE %s OR reference LIKE %s ) ORDER BY %i ASC, id ASC LIMIT %d OFFSET %d",
+					$table,
+					$form_id,
+					$form_id,
+					$status,
+					$status,
+					$search,
+					$like,
+					$like,
+					$like,
+					$orderby,
+					$limit,
+					$offset
+				)
+			);
+		} else {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT * FROM %i WHERE ( %d = 0 OR form_id = %d ) AND ( %s = '' OR status = %s ) AND ( %s = '' OR email LIKE %s OR name LIKE %s OR reference LIKE %s ) ORDER BY %i DESC, id DESC LIMIT %d OFFSET %d",
+					$table,
+					$form_id,
+					$form_id,
+					$status,
+					$status,
+					$search,
+					$like,
+					$like,
+					$like,
+					$orderby,
+					$limit,
+					$offset
+				)
+			);
+		}
 		// phpcs:enable
 
 		return array(

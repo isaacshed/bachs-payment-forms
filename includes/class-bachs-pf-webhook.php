@@ -247,7 +247,7 @@ class Bachs_PF_Webhook {
 			return;
 		}
 
-		$payment = Bachs_PF_Payments::get_by( 'subscription_id', $subscription_id, array( 'parent_id' => 0 ) );
+		$payment = Bachs_PF_Payments::get_by( 'subscription_id', $subscription_id, true );
 
 		// First event for this subscription: Bachs copies the checkout metadata onto it.
 		if ( ! $payment ) {
@@ -289,7 +289,7 @@ class Bachs_PF_Webhook {
 			return;
 		}
 
-		$parent = Bachs_PF_Payments::get_by( 'subscription_id', $subscription_id, array( 'parent_id' => 0 ) );
+		$parent = Bachs_PF_Payments::get_by( 'subscription_id', $subscription_id, true );
 		if ( ! $parent ) {
 			// Usually the first invoice arriving before customer.subscription.created: nothing to record.
 			return;
