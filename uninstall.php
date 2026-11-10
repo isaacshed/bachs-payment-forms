@@ -32,4 +32,6 @@ if ( is_array( $bachs_pf_settings ) && isset( $bachs_pf_settings['delete_data'] 
 	delete_option( 'bachs_pf_db_version' );
 }
 
+wp_clear_scheduled_hook( 'bachs_pf_reconcile_payments' );
 delete_option( 'bachs_pf_settings' );
+delete_option( 'bachs_pf_webhook_status' );

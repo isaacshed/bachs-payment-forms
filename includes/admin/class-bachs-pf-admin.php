@@ -23,6 +23,7 @@ class Bachs_PF_Admin {
 		add_action( 'admin_notices', array( __CLASS__, 'notices' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_action( 'admin_post_bachs_pf_export', array( __CLASS__, 'export_csv' ) );
+		add_action( 'admin_post_bachs_pf_check', array( __CLASS__, 'check_payment' ) );
 		add_filter( 'manage_' . Bachs_PF_Forms::POST_TYPE . '_posts_columns', array( __CLASS__, 'columns' ) );
 		add_action( 'manage_' . Bachs_PF_Forms::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'column' ), 10, 2 );
 		add_filter( 'post_row_actions', array( __CLASS__, 'row_actions' ), 10, 2 );
@@ -44,8 +45,8 @@ class Bachs_PF_Admin {
 		if ( ! $screen || Bachs_PF_Forms::POST_TYPE !== $screen->post_type ) {
 			return;
 		}
-		wp_enqueue_style( 'bachs-pf-admin', BACHS_PF_URL . '/assets/css/bachs-pf-admin.css', array(), BACHS_PF_VERSION );
-		wp_enqueue_script( 'bachs-pf-admin', BACHS_PF_URL . '/assets/js/bachs-pf-admin.js', array(), BACHS_PF_VERSION, true );
+		wp_enqueue_style( 'bachs-pf-admin', BACHS_PF_URL . '/assets/css/bachs-pf-admin.css', array(), bachs_pf_asset_version( 'assets/css/bachs-pf-admin.css' ) );
+		wp_enqueue_script( 'bachs-pf-admin', BACHS_PF_URL . '/assets/js/bachs-pf-admin.js', array(), bachs_pf_asset_version( 'assets/js/bachs-pf-admin.js' ), true );
 	}
 
 	/**
@@ -414,6 +415,12 @@ class Bachs_PF_Admin {
 		}
 		echo '</h1> <a href="' . esc_url( $export_url ) . '" class="page-title-action">' . esc_html__( 'Export CSV', 'bachs-payment-forms' ) . '</a><hr class="wp-header-end">';
 
+		$health = self::webhook_health();
+		if ( 'ok' !== $health['state'] ) {
+			$settings_url = admin_url( 'edit.php?post_type=' . Bachs_PF_Forms::POST_TYPE . '&page=bachs-pf-settings' );
+			echo '<div class="notice notice-warning"><p>' . esc_html( $health['text'] ) . ' <a href="' . esc_url( $settings_url ) . '">' . esc_html__( 'Webhook settings', 'bachs-payment-forms' ) . '</a></p></div>';
+		}
+
 		echo '<form method="get">';
 		echo '<input type="hidden" name="post_type" value="' . esc_attr( Bachs_PF_Forms::POST_TYPE ) . '">';
 		echo '<input type="hidden" name="page" value="bachs-pf-payments">';
@@ -481,11 +488,96 @@ class Bachs_PF_Admin {
 			}
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only result flag set by check_payment().
+		$checked = isset( $_GET['checked'] ) ? sanitize_key( wp_unslash( $_GET['checked'] ) ) : '';
+		if ( '' !== $checked ) {
+			$messages = array(
+				'paid'    => array( 'success', __( 'Bachs confirms this payment was made. It is now marked paid.', 'bachs-payment-forms' ) ),
+				'review'  => array( 'warning', __( 'Bachs confirms a payment was made, but it needs review: see "Needs review" below.', 'bachs-payment-forms' ) ),
+				'expired' => array( 'info', __( 'Bachs reports that this checkout ended without payment.', 'bachs-payment-forms' ) ),
+				'pending' => array( 'info', __( 'Bachs has not received this payment yet.', 'bachs-payment-forms' ) ),
+				'failed'  => array( 'info', __( 'Bachs has not received this payment yet.', 'bachs-payment-forms' ) ),
+				'error'   => array( 'error', __( 'Could not reach Bachs. Check your API key in Settings and try again.', 'bachs-payment-forms' ) ),
+			);
+			if ( isset( $messages[ $checked ] ) ) {
+				echo '<div class="notice notice-' . esc_attr( $messages[ $checked ][0] ) . '"><p>' . esc_html( $messages[ $checked ][1] ) . '</p></div>';
+			}
+		}
+
 		echo '<table class="widefat striped" style="max-width:800px"><tbody>';
 		foreach ( $rows as $label => $value ) {
 			echo '<tr><th scope="row" style="width:220px">' . esc_html( $label ) . '</th><td>' . nl2br( esc_html( (string) $value ) ) . '</td></tr>';
 		}
-		echo '</tbody></table></div>';
+		echo '</tbody></table>';
+
+		if ( in_array( $payment->status, Bachs_PF_Payments::UNSETTLED, true ) && '' !== $payment->checkout_id && 0 === (int) $payment->parent_id ) {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin-top:16px">';
+			echo '<input type="hidden" name="action" value="bachs_pf_check">';
+			echo '<input type="hidden" name="payment" value="' . (int) $payment->id . '">';
+			wp_nonce_field( 'bachs_pf_check_' . (int) $payment->id );
+			submit_button( __( 'Check status with Bachs', 'bachs-payment-forms' ), 'secondary', 'submit', false );
+			echo '<p class="description">' . esc_html__( 'Asks Bachs whether this checkout was paid and updates the payment. Payments are also checked automatically every hour for three days.', 'bachs-payment-forms' ) . '</p>';
+			echo '</form>';
+		}
+		echo '</div>';
+	}
+
+	/**
+	 * Admin action: check one payment's status with Bachs.
+	 */
+	public static function check_payment() {
+		$payment_id = isset( $_POST['payment'] ) ? absint( $_POST['payment'] ) : 0;
+
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'You do not have permission to do that.', 'bachs-payment-forms' ), 403 );
+		}
+		check_admin_referer( 'bachs_pf_check_' . $payment_id );
+
+		$payment = Bachs_PF_Payments::get( $payment_id );
+		$result  = 'error';
+		if ( $payment ) {
+			$check  = Bachs_PF_Checkout::reconcile( $payment );
+			$result = 'error' === $check['session']['status'] ? 'error' : $check['payment']->status;
+		}
+
+		wp_safe_redirect( admin_url( 'edit.php?post_type=' . Bachs_PF_Forms::POST_TYPE . '&page=bachs-pf-payments&payment=' . $payment_id . '&checked=' . rawurlencode( $result ) ) );
+		exit;
+	}
+
+	/**
+	 * Webhook health, for the settings page and the payments screen.
+	 *
+	 * @return array{state: string, text: string} state: ok, error or none.
+	 */
+	public static function webhook_health() {
+		$status = Bachs_PF_Webhook::delivery_status();
+
+		if ( 'error' === $status['last_state'] ) {
+			return array(
+				'state' => 'error',
+				'text'  => sprintf(
+					/* translators: 1: time ago, 2: reason */
+					__( 'The last webhook from Bachs, %1$s ago, was rejected: %2$s', 'bachs-payment-forms' ),
+					human_time_diff( $status['last_error'] ),
+					$status['last_error_reason']
+				),
+			);
+		}
+		if ( $status['last_ok'] ) {
+			return array(
+				'state' => 'ok',
+				'text'  => sprintf(
+					/* translators: 1: time ago, 2: event type */
+					__( 'Working. Last webhook received %1$s ago (%2$s).', 'bachs-payment-forms' ),
+					human_time_diff( $status['last_ok'] ),
+					$status['last_ok_type']
+				),
+			);
+		}
+		return array(
+			'state' => 'none',
+			'text'  => __( 'No webhook received from Bachs yet. Payments are still confirmed when payers return to your site and by an hourly check, but set up the webhook so they are confirmed instantly.', 'bachs-payment-forms' ),
+		);
 	}
 
 	/**
@@ -675,6 +767,14 @@ class Bachs_PF_Admin {
 		echo '<tr><th scope="row">' . esc_html__( 'Webhook URL', 'bachs-payment-forms' ) . '</th><td><input type="text" class="large-text code" readonly value="' . esc_attr( Bachs_PF_Settings::webhook_url() ) . '" onclick="this.select();">';
 		echo '<p class="description">' . esc_html__( 'Add this URL as a webhook endpoint in your Bachs developer portal (sandbox and live), subscribe it to these events, then paste each signing secret above:', 'bachs-payment-forms' ) . '</p>';
 		echo '<p><code>collection.succeeded</code> <code>collection.underpaid</code> <code>collection.failed</code> <code>checkout.expired</code> <code>customer.subscription.created</code> <code>customer.subscription.updated</code> <code>customer.subscription.deleted</code> <code>invoice.paid</code></p></td></tr>';
+
+		$health = self::webhook_health();
+		$color  = array(
+			'ok'    => '#00a32a',
+			'error' => '#d63638',
+			'none'  => '#dba617',
+		);
+		echo '<tr><th scope="row">' . esc_html__( 'Webhook status', 'bachs-payment-forms' ) . '</th><td><p><span aria-hidden="true" style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:' . esc_attr( $color[ $health['state'] ] ) . '"></span>' . esc_html( $health['text'] ) . '</p></td></tr>';
 
 		echo '<tr><th scope="row"><label for="bachs-pf-notify">' . esc_html__( 'Notification email', 'bachs-payment-forms' ) . '</label></th><td><input type="email" id="bachs-pf-notify" name="' . esc_attr( $option ) . '[notify_email]" value="' . esc_attr( $s['notify_email'] ) . '" class="regular-text" placeholder="' . esc_attr( (string) get_option( 'admin_email' ) ) . '"><p class="description">' . esc_html__( 'Where payment notifications go. Defaults to the site admin email.', 'bachs-payment-forms' ) . '</p></td></tr>';
 

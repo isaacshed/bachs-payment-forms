@@ -20,6 +20,23 @@ class Bachs_PF_Checkout {
 		add_action( 'wp_ajax_nopriv_bachs_pf_submit', array( __CLASS__, 'ajax_submit' ) );
 		add_action( 'wp_ajax_bachs_pf_retry', array( __CLASS__, 'ajax_retry' ) );
 		add_action( 'wp_ajax_nopriv_bachs_pf_retry', array( __CLASS__, 'ajax_retry' ) );
+		add_action( self::CRON_HOOK, array( __CLASS__, 'reconcile_recent' ) );
+		add_action( 'init', array( __CLASS__, 'schedule' ) );
+	}
+
+	const CRON_HOOK = 'bachs_pf_reconcile_payments';
+
+	/**
+	 * Make sure the hourly status check is scheduled (also after updates without re-activation).
+	 */
+	public static function schedule() {
+		if ( function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::CRON_HOOK ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', self::CRON_HOOK );
+		}
+	}
+
+	public static function unschedule() {
+		wp_clear_scheduled_hook( self::CRON_HOOK );
 	}
 
 	/**
@@ -368,8 +385,13 @@ class Bachs_PF_Checkout {
 			return new WP_Error( 'bachs_pf_retry', __( 'This payment form is no longer available.', 'bachs-payment-forms' ) );
 		}
 
-		$status = self::session_status( $payment );
+		$check   = self::reconcile( $payment );
+		$payment = $check['payment'];
+		$status  = $check['session'];
 
+		if ( ! in_array( $payment->status, Bachs_PF_Payments::UNSETTLED, true ) ) {
+			return new WP_Error( 'bachs_pf_retry', __( 'This payment has already been made.', 'bachs-payment-forms' ) );
+		}
 		if ( 'open' === $status['status'] && '' !== $status['url'] ) {
 			return $status['url'];
 		}
@@ -436,9 +458,58 @@ class Bachs_PF_Checkout {
 		}
 
 		return array(
-			'status' => 'canceled' === $status ? 'cancelled' : $status,
-			'url'    => isset( $session->checkout_url ) && is_scalar( $session->checkout_url ) ? (string) $session->checkout_url : '',
+			'status'  => 'canceled' === $status ? 'cancelled' : $status,
+			'url'     => isset( $session->checkout_url ) && is_scalar( $session->checkout_url ) ? (string) $session->checkout_url : '',
+			'session' => is_object( $session ) ? $session : null,
 		);
+	}
+
+	/**
+	 * Ask Bachs about an unsettled payment's checkout and record the outcome: paid (or held for
+	 * review) when the checkout was paid, expired when it ended unpaid. This is how payments
+	 * are confirmed when the webhook is late or misconfigured.
+	 *
+	 * @param object $payment
+	 * @return array{payment: object, session: array} session: status (open, completed, expired, cancelled, none, error) and url.
+	 */
+	public static function reconcile( $payment ) {
+		if ( ! in_array( $payment->status, Bachs_PF_Payments::UNSETTLED, true ) || 0 !== (int) $payment->parent_id ) {
+			return array(
+				'payment' => $payment,
+				'session' => array(
+					'status' => 'none',
+					'url'    => '',
+				),
+			);
+		}
+
+		$session = self::session_status( $payment );
+
+		if ( ! empty( $session['session'] ) ) {
+			Bachs_PF_Webhook::settle_from_session( $payment, $session['session'] );
+			$fresh = Bachs_PF_Payments::get( $payment->id );
+			if ( $fresh ) {
+				$payment = $fresh;
+			}
+		}
+
+		return array(
+			'payment' => $payment,
+			'session' => $session,
+		);
+	}
+
+	/**
+	 * Hourly: confirm recent payments still awaiting their webhook.
+	 */
+	public static function reconcile_recent() {
+		if ( ! Bachs_PF_Settings::has_keys() ) {
+			return;
+		}
+		$since = gmdate( 'Y-m-d H:i:s', time() - 3 * DAY_IN_SECONDS );
+		foreach ( Bachs_PF_Payments::unsettled_since( $since, 25 ) as $payment ) {
+			self::reconcile( $payment );
+		}
 	}
 
 	/**

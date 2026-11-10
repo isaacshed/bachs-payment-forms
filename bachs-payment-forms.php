@@ -42,6 +42,7 @@ if ( is_admin() ) {
 }
 
 register_activation_hook( __FILE__, array( 'Bachs_PF_Payments', 'install' ) );
+register_deactivation_hook( __FILE__, array( 'Bachs_PF_Checkout', 'unschedule' ) );
 
 /**
  * Wire up the plugin.
@@ -59,6 +60,18 @@ function bachs_pf_init() {
 	}
 }
 add_action( 'plugins_loaded', 'bachs_pf_init' );
+
+/**
+ * Version string for a bundled asset: the plugin version plus the file's modification time, so
+ * browsers and caches fetch a new copy whenever the file changes.
+ *
+ * @param string $relative Path inside the plugin, e.g. 'assets/js/bachs-pf.js'.
+ * @return string
+ */
+function bachs_pf_asset_version( $relative ) {
+	$file = BACHS_PF_PATH . '/' . ltrim( $relative, '/' );
+	return file_exists( $file ) ? BACHS_PF_VERSION . '.' . filemtime( $file ) : BACHS_PF_VERSION;
+}
 
 /**
  * Log to the PHP error log only when WP_DEBUG_LOG is on, through a filterable hook so sites can

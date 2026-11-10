@@ -325,6 +325,29 @@ class Bachs_PF_Payments {
 	}
 
 	/**
+	 * First payments still awaiting confirmation, created since a time, oldest first.
+	 *
+	 * @param string $since UTC 'Y-m-d H:i:s'.
+	 * @param int    $limit
+	 * @return object[]
+	 */
+	public static function unsettled_since( $since, $limit ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Live payment state.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE parent_id = 0 AND checkout_id <> '' AND status IN ('pending','failed') AND created_at >= %s ORDER BY id ASC LIMIT %d",
+				self::table(),
+				(string) $since,
+				max( 1, (int) $limit )
+			)
+		);
+
+		return array_map( array( __CLASS__, 'decode' ), (array) $rows );
+	}
+
+	/**
 	 * Units sold on a form: the quantity of its paid (or held for review) first payments.
 	 *
 	 * @param int $form_id

@@ -37,8 +37,8 @@ class Bachs_PF_Renderer {
 	}
 
 	public static function register_assets() {
-		wp_register_style( 'bachs-pf', BACHS_PF_URL . '/assets/css/bachs-pf.css', array(), BACHS_PF_VERSION );
-		wp_register_script( 'bachs-pf', BACHS_PF_URL . '/assets/js/bachs-pf.js', array(), BACHS_PF_VERSION, true );
+		wp_register_style( 'bachs-pf', BACHS_PF_URL . '/assets/css/bachs-pf.css', array(), bachs_pf_asset_version( 'assets/css/bachs-pf.css' ) );
+		wp_register_script( 'bachs-pf', BACHS_PF_URL . '/assets/js/bachs-pf.js', array(), bachs_pf_asset_version( 'assets/js/bachs-pf.js' ), true );
 		wp_localize_script(
 			'bachs-pf',
 			'bachsPf',
@@ -335,6 +335,15 @@ class Bachs_PF_Renderer {
 	 * @return string
 	 */
 	public static function render_status( $payment, $settings, $cancelled ) {
+		// Confirm with Bachs directly, so a paid payment shows as paid even if the webhook
+		// hasn't arrived (or isn't set up).
+		$session = array( 'status' => 'cancelled' );
+		if ( ! $cancelled ) {
+			$check   = Bachs_PF_Checkout::reconcile( $payment );
+			$payment = $check['payment'];
+			$session = $check['session'];
+		}
+
 		$amount = Bachs_PF_Money::display( $payment->amount, $payment->currency );
 		$html   = '<div class="bachs-pf bachs-pf-status">';
 
@@ -350,8 +359,6 @@ class Bachs_PF_Renderer {
 			) . '</p>';
 			return $html . '</div>';
 		}
-
-		$session = $cancelled ? array( 'status' => 'cancelled' ) : Bachs_PF_Checkout::session_status( $payment );
 
 		if ( 'completed' === $session['status'] ) {
 			$html .= '<p class="bachs-pf-success">' . esc_html__( 'Thank you! We have received your payment and are confirming it. You will get an email receipt shortly.', 'bachs-payment-forms' ) . '</p>';

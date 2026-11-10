@@ -93,6 +93,10 @@ You can cancel any subscription from your Bachs dashboard, and payers can manage
 
 Yes. Payments are only marked paid when Bachs's signed webhook arrives, so a payer closing their browser can never leave a payment unrecorded, and a payment can never be faked from the browser. Add the Webhook URL from the settings to your Bachs developer portal, subscribe to `collection.succeeded`, `collection.underpaid`, `collection.failed`, `checkout.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted` and `invoice.paid`, and paste the signing secret into the settings.
 
+= A payment shows "Awaiting payment" but it was paid in Bachs. Why? =
+
+Payments are confirmed instantly by Bachs's webhook. If the webhook isn't set up, or its signing secret doesn't match, the plugin still confirms the payment with Bachs when the payer returns to your site, and checks recent unpaid payments every hour. You can also open the payment and click **Check status with Bachs**. To fix the cause, open **Bachs Forms > Settings**: the **Webhook status** line shows whether webhooks are arriving and, if one was rejected, why.
+
 = Why is a payment marked "Needs review"? =
 
 The plugin checks every payment against the form before marking it paid. It is held for review, and you get an email, when the payer paid less than the form asked for, Bachs accepted the payment on terms other than the exact amount, the payment was short (underpaid), or a second payment arrived for a submission that was already paid. Check the payment in your Bachs dashboard, then deliver, collect the balance, or refund.

@@ -48,12 +48,17 @@ class Bachs_PF_Webhook {
 		);
 
 		if ( ! $mode ) {
+			$reason = self::has_any_secret()
+				? __( 'The signature did not match. Check that the signing secret in Settings is the one for this webhook endpoint, in the same mode (sandbox or live).', 'bachs-payment-forms' )
+				: __( 'No webhook signing secret is saved in Settings.', 'bachs-payment-forms' );
 			bachs_pf_log( 'Webhook rejected: signature did not verify.', 'warning' );
+			self::record_delivery( false, $reason );
 			return new WP_REST_Response( array( 'ok' => false ), 400 );
 		}
 
 		$event = json_decode( $body );
 		if ( ! is_object( $event ) || empty( $event->type ) || ! isset( $event->data ) || ! is_object( $event->data ) ) {
+			self::record_delivery( false, __( 'The webhook body was not a valid Bachs event.', 'bachs-payment-forms' ) );
 			return new WP_REST_Response( array( 'ok' => false ), 400 );
 		}
 
@@ -61,11 +66,59 @@ class Bachs_PF_Webhook {
 			self::dispatch( $event );
 		} catch ( Throwable $e ) {
 			bachs_pf_log( sprintf( 'Webhook %s failed: %s', $event->type, $e->getMessage() ), 'error' );
+			/* translators: %s: event type */
+			self::record_delivery( false, sprintf( __( 'Processing %s failed; Bachs will retry. See the debug log for details.', 'bachs-payment-forms' ), (string) $event->type ) );
 			// 5xx makes Bachs retry.
 			return new WP_REST_Response( array( 'ok' => false ), 500 );
 		}
 
+		self::record_delivery( true, (string) $event->type );
 		return new WP_REST_Response( array( 'ok' => true ), 200 );
+	}
+
+	const DELIVERY_OPTION = 'bachs_pf_webhook_status';
+
+	/**
+	 * Remember the last accepted and the last rejected delivery, for the settings page.
+	 *
+	 * @param bool   $ok
+	 * @param string $detail Event type when accepted, reason when rejected.
+	 */
+	public static function record_delivery( $ok, $detail ) {
+		$status = self::delivery_status();
+		$status['last_state'] = $ok ? 'ok' : 'error';
+		if ( $ok ) {
+			$status['last_ok']      = time();
+			$status['last_ok_type'] = $detail;
+		} else {
+			$status['last_error']        = time();
+			$status['last_error_reason'] = $detail;
+		}
+		update_option( self::DELIVERY_OPTION, $status, false );
+	}
+
+	/**
+	 * @return array last_ok, last_ok_type, last_error, last_error_reason.
+	 */
+	public static function delivery_status() {
+		$status = get_option( self::DELIVERY_OPTION, array() );
+		return array_merge(
+			array(
+				'last_ok'           => 0,
+				'last_ok_type'      => '',
+				'last_error'        => 0,
+				'last_error_reason' => '',
+				'last_state'        => '',
+			),
+			is_array( $status ) ? $status : array()
+		);
+	}
+
+	/**
+	 * @return bool
+	 */
+	protected static function has_any_secret() {
+		return '' !== Bachs_PF_Settings::get_webhook_secret( 'sandbox' ) || '' !== Bachs_PF_Settings::get_webhook_secret( 'live' );
 	}
 
 	/**
@@ -100,16 +153,34 @@ class Bachs_PF_Webhook {
 		if ( ! $payment || Bachs_PF_Payments::has_event( $payment, self::event_id( $event ) ) ) {
 			return;
 		}
+		self::settle( $payment, $data, self::event_id( $event ) );
+	}
 
-		$charge_id = self::str( $data, 'charge_id' );
+	/**
+	 * Record a successful payment: paid when it matches the form, otherwise held for review.
+	 * Shared by the webhook and by status checks against the Bachs API, and safe to call any
+	 * number of times: the status transition is atomic, so emails and stock happen once.
+	 *
+	 * @param object $payment
+	 * @param object $data     collection.succeeded-shaped data: charge_id, status, amount, currency, reference, ...
+	 * @param string $event_id Webhook event ID, '' for API checks.
+	 * @return string The payment's status afterwards.
+	 */
+	public static function settle( $payment, $data, $event_id = '' ) {
+		$charge_id   = self::str( $data, 'charge_id' );
+		$checkout_id = self::str( $data, 'checkout_id' );
 
-		// Already settled: a second payment for the same submission.
+		// Already settled: a second payment for the same submission is one from a different
+		// checkout. (The same checkout seen again, from the webhook and the status API, is not:
+		// the two can name the charge differently.)
 		if ( ! in_array( $payment->status, Bachs_PF_Payments::UNSETTLED, true ) ) {
-			if ( '' !== $charge_id && $charge_id !== $payment->charge_id ) {
+			$other_checkout = '' !== $checkout_id && '' !== $payment->checkout_id && $checkout_id !== $payment->checkout_id;
+			$other_charge   = '' === $checkout_id && '' !== $charge_id && '' !== $payment->charge_id && $charge_id !== $payment->charge_id;
+			if ( $other_checkout || $other_charge ) {
 				self::record_duplicate( $payment, $data );
 			}
-			Bachs_PF_Payments::remember_event( $payment, self::event_id( $event ) );
-			return;
+			Bachs_PF_Payments::remember_event( $payment, $event_id );
+			return $payment->status;
 		}
 
 		$problem = self::payment_problem( $payment, $data );
@@ -125,12 +196,16 @@ class Bachs_PF_Webhook {
 		if ( isset( $data->customer->id ) && is_scalar( $data->customer->id ) ) {
 			$columns['customer_id'] = (string) $data->customer->id;
 		}
+		// Remember which checkout paid, so a later payment on another checkout is spotted.
+		if ( '' !== $checkout_id ) {
+			$columns['checkout_id'] = $checkout_id;
+		}
 
 		$to = '' === $problem ? Bachs_PF_Payments::STATUS_PAID : Bachs_PF_Payments::STATUS_REVIEW;
 
 		if ( Bachs_PF_Payments::transition( $payment->id, Bachs_PF_Payments::UNSETTLED, $to, $columns ) ) {
 			$payment = Bachs_PF_Payments::get( $payment->id );
-			Bachs_PF_Payments::remember_event( $payment, self::event_id( $event ) );
+			Bachs_PF_Payments::remember_event( $payment, $event_id );
 
 			if ( Bachs_PF_Payments::STATUS_PAID === $to ) {
 				do_action( 'bachs_pf_payment_paid', $payment );
@@ -138,7 +213,51 @@ class Bachs_PF_Webhook {
 				bachs_pf_log( sprintf( 'Payment #%d held for review: %s', $payment->id, $problem ), 'warning' );
 				do_action( 'bachs_pf_payment_review', $payment, $problem );
 			}
+			return $to;
 		}
+
+		$fresh = Bachs_PF_Payments::get( $payment->id );
+		return $fresh ? $fresh->status : $payment->status;
+	}
+
+	/**
+	 * Bring a payment up to date from its checkout session, as returned by
+	 * GET /v1/checkout-sessions/{id}. Used when the webhook is late or never arrives.
+	 *
+	 * @param object $payment
+	 * @param object $session
+	 * @return string The payment's status afterwards.
+	 */
+	public static function settle_from_session( $payment, $session ) {
+		$status         = strtolower( self::str( $session, 'status' ) );
+		$payment_status = strtolower( self::str( $session, 'payment_status' ) );
+		$charge         = isset( $session->charge ) && is_object( $session->charge ) ? $session->charge : null;
+		$charge_status  = $charge ? strtolower( self::str( $charge, 'status' ) ) : '';
+
+		$succeeded = 'completed' === $status && ( 'succeeded' === $payment_status || 'succeeded' === $charge_status );
+
+		if ( $succeeded ) {
+			$data = (object) array(
+				'checkout_id' => self::str( $session, 'checkout_id' ),
+				'charge_id'   => $charge ? ( '' !== self::str( $charge, 'payment_id' ) ? self::str( $charge, 'payment_id' ) : self::str( $charge, 'charge_id' ) ) : '',
+				'status'      => 'SUCCEEDED',
+				'amount'      => $charge && '' !== self::str( $charge, 'amount' ) ? self::str( $charge, 'amount' ) : self::str( $session, 'amount' ),
+				'currency'    => $charge && '' !== self::str( $charge, 'currency' ) ? self::str( $charge, 'currency' ) : self::str( $session, 'currency' ),
+				'reference'   => self::str( $session, 'reference' ),
+			);
+			if ( isset( $session->customer->id ) && is_scalar( $session->customer->id ) ) {
+				$data->customer = (object) array( 'id' => (string) $session->customer->id );
+			}
+			return self::settle( $payment, $data );
+		}
+
+		// The checkout ended without payment.
+		if ( in_array( $status, array( 'expired', 'cancelled', 'canceled' ), true ) && self::is_current_checkout( $payment, $session ) ) {
+			Bachs_PF_Payments::transition( $payment->id, array( Bachs_PF_Payments::STATUS_PENDING, Bachs_PF_Payments::STATUS_FAILED ), Bachs_PF_Payments::STATUS_EXPIRED );
+		}
+
+		$fresh = Bachs_PF_Payments::get( $payment->id );
+		return $fresh ? $fresh->status : $payment->status;
 	}
 
 	/**

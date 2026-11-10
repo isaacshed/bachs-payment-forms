@@ -412,6 +412,68 @@ check( 'renewal does not count against stock', 1 === Bachs_PF_Payments::sold_qua
 Bachs_PF_Webhook::dispatch( event( 'evt_s2', 'customer.subscription.deleted', array( 'subscription_id' => 'sub_1', 'status' => 'canceled' ) ) );
 check( 'cancellation tracked', 'canceled' === Bachs_PF_Payments::get( 1 )->subscription_status );
 
+// --- Confirming payments with the Bachs API (webhook late or missing) -----------------------------
+
+function session_paid( $pay, $extra = array() ) {
+	return array_merge(
+		array(
+			'checkout_id'    => 'chk_1',
+			'status'         => 'completed',
+			'payment_status' => 'succeeded',
+			'amount'         => '20.00',
+			'currency'       => 'USD',
+			'reference'      => $pay->reference,
+			'charge'         => array( 'payment_id' => 'pay_1', 'status' => 'succeeded', 'amount' => '20.00', 'currency' => 'USD' ),
+			'customer'       => array( 'id' => 'cust_1' ),
+			'metadata'       => array( 'bachs_pf_payment_id' => (string) $pay->id ),
+		),
+		$extra
+	);
+}
+
+$pay = paid_setup();
+t_queue( 200, session_paid( $pay ) );
+$r = Bachs_PF_Checkout::reconcile( $pay );
+check( 'reconcile: paid checkout marks the payment paid', 'paid' === $r['payment']->status && 'pay_1' === $r['payment']->charge_id && 'cust_1' === $r['payment']->customer_id );
+check( 'reconcile: paid action fired', 1 === count( actions( 'bachs_pf_payment_paid' ) ) );
+check( 'reconcile: settled payments are not looked up again', 1 === count( $GLOBALS['T']['requests'] ) - 1 && 'none' === Bachs_PF_Checkout::reconcile( $r['payment'] )['session']['status'] );
+Bachs_PF_Webhook::dispatch( event( 'evt_1', 'collection.succeeded', succeeded( $pay, array( 'charge_id' => 'ch_9' ) ) ) );
+check( 'webhook after API settle: same checkout, other charge ID format, not a duplicate', 1 === Bachs_PF_Payments::query()['total'] && 1 === count( actions( 'bachs_pf_payment_paid' ) ) );
+Bachs_PF_Webhook::dispatch( event( 'evt_2', 'collection.succeeded', succeeded( $pay, array( 'charge_id' => 'ch_10', 'checkout_id' => 'chk_other' ) ) ) );
+check( 'payment on a different checkout is a duplicate', 2 === Bachs_PF_Payments::query()['total'] );
+
+$pay = paid_setup();
+t_queue( 200, session_paid( $pay, array( 'payment_status' => 'processing', 'charge' => array( 'payment_id' => 'pay_1', 'status' => 'processing' ) ) ) );
+check( 'reconcile: still processing stays pending', 'pending' === Bachs_PF_Checkout::reconcile( $pay )['payment']->status );
+
+$pay = paid_setup();
+t_queue( 200, session_paid( $pay, array( 'charge' => array( 'payment_id' => 'pay_1', 'status' => 'succeeded', 'amount' => '2.00', 'currency' => 'USD' ) ) ) );
+check( 'reconcile: short charge held for review', 'review' === Bachs_PF_Checkout::reconcile( $pay )['payment']->status );
+
+$pay = paid_setup();
+t_queue( 200, array( 'checkout_id' => 'chk_1', 'status' => 'expired' ) );
+check( 'reconcile: expired checkout marks expired', 'expired' === Bachs_PF_Checkout::reconcile( $pay )['payment']->status );
+
+$pay = paid_setup();
+t_queue( 500, array( 'detail' => 'down' ) );
+$r = Bachs_PF_Checkout::reconcile( $pay );
+check( 'reconcile: API error leaves the payment alone', 'error' === $r['session']['status'] && 'pending' === $r['payment']->status );
+
+// Pay-again on a payment that was actually paid.
+$pay = paid_setup();
+t_queue( 200, session_paid( $pay ) );
+check( 'retry: paid checkout is settled, not paid again', is_wp_error( Bachs_PF_Checkout::retry( $pay->reference, $pay->access_key ) ) && 'paid' === Bachs_PF_Payments::get( 1 )->status );
+
+// Hourly check.
+$pay = paid_setup();
+Bachs_PF_Payments::insert( array( 'form_id' => 10, 'status' => 'pending', 'reference' => 'bpf_old', 'checkout_id' => 'chk_old', 'created_at' => gmdate( 'Y-m-d H:i:s', time() - 5 * 86400 ) ) );
+Bachs_PF_Payments::insert( array( 'form_id' => 10, 'status' => 'pending', 'reference' => 'bpf_nochk' ) );
+$due = Bachs_PF_Payments::unsettled_since( gmdate( 'Y-m-d H:i:s', time() - 3 * 86400 ), 25 );
+check( 'hourly check: only recent payments with a checkout', 1 === count( $due ) && $pay->reference === $due[0]->reference );
+t_queue( 200, session_paid( $pay ) );
+Bachs_PF_Checkout::reconcile_recent();
+check( 'hourly check: confirms a paid checkout', 'paid' === Bachs_PF_Payments::get( 1 )->status );
+
 // --- Signatures -------------------------------------------------------------------------------
 
 setup();
@@ -495,11 +557,27 @@ make_form( array( 'amount' => '10.00' ), '', 13 );
 $html = Bachs_PF_Renderer::shortcode( array( 'id' => 13 ) );
 check( 'single-currency form has no dropdown or pricing data', false === strpos( $html, 'bachs_pf_currency' ) && false === strpos( $html, 'data-pricing' ) );
 
+// Payer status page confirms with Bachs.
+$pay  = paid_setup();
+$_GET = array( 'bachs_pf_payment' => $pay->reference, 'bachs_pf_key' => $pay->access_key );
+t_queue( 200, session_paid( $pay ) );
+$html = Bachs_PF_Renderer::shortcode( array( 'id' => 10 ) );
+check( 'status page: paid checkout shows success without the webhook', false !== strpos( $html, 'bachs-pf-success' ) && 'paid' === Bachs_PF_Payments::get( 1 )->status );
+$_GET = array();
+
 // --- CSV -------------------------------------------------------------------------------------
 
 require BACHS_PF_PATH . '/includes/admin/class-bachs-pf-admin.php';
 check( 'CSV formula neutralised', "'=HYPERLINK(1)" === Bachs_PF_Admin::csv_safe( '=HYPERLINK(1)' ) );
 check( 'CSV negative number kept', '-5' === Bachs_PF_Admin::csv_safe( '-5' ) );
+
+// Webhook health.
+setup();
+check( 'health: none before any webhook', 'none' === Bachs_PF_Admin::webhook_health()['state'] );
+Bachs_PF_Webhook::record_delivery( false, 'bad secret' );
+check( 'health: error after a rejection', 'error' === Bachs_PF_Admin::webhook_health()['state'] && false !== strpos( Bachs_PF_Admin::webhook_health()['text'], 'bad secret' ) );
+Bachs_PF_Webhook::record_delivery( true, 'collection.succeeded' );
+check( 'health: ok once one is accepted', 'ok' === Bachs_PF_Admin::webhook_health()['state'] );
 
 echo "\n{$passes} passed, {$failures} failed\n";
 exit( $failures ? 1 : 0 );

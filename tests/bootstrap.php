@@ -15,6 +15,7 @@ define( 'BACHS_PF_MAIN_FILE', dirname( __DIR__ ) . '/bachs-payment-forms.php' );
 define( 'BACHS_PF_PATH', dirname( __DIR__ ) );
 define( 'BACHS_PF_URL', 'https://site.example/wp-content/plugins/bachs-payment-forms' );
 define( 'HOUR_IN_SECONDS', 3600 );
+define( 'DAY_IN_SECONDS', 86400 );
 
 /* ---------------------------------------------------------------- wpdb on SQLite */
 
@@ -331,6 +332,8 @@ function shortcode_atts( $pairs, $atts, $shortcode = '' ) {
 	return $out;
 }
 
+function bachs_pf_asset_version( $r ) { return 'test'; }
+function human_time_diff( $from, $to = 0 ) { return ( ( $to ?: time() ) - $from ) . ' secs'; }
 function bachs_pf_log( $message, $level = 'info' ) { $GLOBALS['T']['logs'][] = array( $level, $message ); }
 
 t_reset();
