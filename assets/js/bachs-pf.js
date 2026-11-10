@@ -17,6 +17,103 @@
 		box.classList.toggle( 'is-error', !! isError );
 	}
 
+	function money( amount, currency ) {
+		var value = parseFloat( amount ) || 0;
+		var formatted;
+		try {
+			formatted = new Intl.NumberFormat( undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 } ).format( value );
+		} catch ( e ) {
+			formatted = value.toFixed( 2 );
+		}
+		return ( currency || '' ) + ' ' + formatted;
+	}
+
+	function pricing( form ) {
+		var raw = form.getAttribute( 'data-pricing' );
+		if ( ! raw ) {
+			return null;
+		}
+		try {
+			return JSON.parse( raw );
+		} catch ( e ) {
+			return null;
+		}
+	}
+
+	/**
+	 * Show the chosen currency's prices. Display only: the server prices the payment.
+	 */
+	function applyCurrency( form ) {
+		var select = form.querySelector( '.bachs-pf-currency' );
+		var all = pricing( form );
+		if ( ! select || ! all || ! all[ select.value ] ) {
+			return;
+		}
+		var code = select.value;
+		var price = all[ code ];
+		var i;
+
+		form.setAttribute( 'data-currency', code );
+
+		var fixed = form.querySelector( '.bachs-pf-fixed .bachs-pf-unit' );
+		if ( fixed ) {
+			fixed.setAttribute( 'data-amount', price.amount );
+			fixed.textContent = money( price.amount, code );
+		}
+
+		var radios = form.querySelectorAll( 'input[name="bachs_pf_option"]' );
+		for ( i = 0; i < radios.length; i++ ) {
+			var amount = price.options[ i ];
+			radios[ i ].setAttribute( 'data-amount', amount );
+			var label = form.querySelector( '.bachs-pf-price[data-index="' + i + '"]' );
+			if ( label ) {
+				label.textContent = money( amount, code );
+			}
+		}
+
+		var custom = form.querySelector( 'input[name="bachs_pf_amount"]' );
+		if ( custom ) {
+			custom.min = price.min || '0.01';
+			if ( price.max ) {
+				custom.max = price.max;
+			} else {
+				custom.removeAttribute( 'max' );
+			}
+			var amountLabel = form.querySelector( '.bachs-pf-amount-label' );
+			if ( amountLabel && i18n.amount ) {
+				amountLabel.textContent = i18n.amount.replace( '%s', code );
+			}
+			var hint = form.querySelector( '.bachs-pf-hint' );
+			if ( hint ) {
+				var parts = [];
+				if ( price.min && i18n.minimum ) {
+					parts.push( i18n.minimum.replace( '%s', money( price.min, code ) ) );
+				}
+				if ( price.max && i18n.maximum ) {
+					parts.push( i18n.maximum.replace( '%s', money( price.max, code ) ) );
+				}
+				hint.textContent = parts.join( ', ' );
+			}
+		}
+
+		// Recurring needs a currency Bachs subscriptions can bill.
+		var schedule = form.querySelector( 'select[name="bachs_pf_cadence"]' );
+		var note = form.querySelector( '.bachs-pf-recurring-note' );
+		if ( schedule ) {
+			for ( i = 0; i < schedule.options.length; i++ ) {
+				if ( 'once' !== schedule.options[ i ].value ) {
+					schedule.options[ i ].disabled = ! price.recurring;
+				}
+			}
+			if ( ! price.recurring ) {
+				schedule.value = 'once';
+			}
+			if ( note ) {
+				note.hidden = !! price.recurring;
+			}
+		}
+	}
+
 	function unitAmount( form ) {
 		var fixed = form.querySelector( '.bachs-pf-fixed .bachs-pf-unit' );
 		if ( fixed ) {
@@ -43,13 +140,7 @@
 			return;
 		}
 		if ( total > 0 ) {
-			var formatted;
-			try {
-				formatted = new Intl.NumberFormat( undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 } ).format( total );
-			} catch ( e ) {
-				formatted = total.toFixed( 2 );
-			}
-			target.textContent = ( form.getAttribute( 'data-currency' ) || '' ) + ' ' + formatted;
+			target.textContent = money( total, form.getAttribute( 'data-currency' ) );
 		} else {
 			target.textContent = '';
 		}
@@ -107,9 +198,13 @@
 		form.addEventListener( 'input', function () {
 			updateTotal( form );
 		} );
-		form.addEventListener( 'change', function () {
+		form.addEventListener( 'change', function ( event ) {
+			if ( event.target && event.target.classList && event.target.classList.contains( 'bachs-pf-currency' ) ) {
+				applyCurrency( form );
+			}
 			updateTotal( form );
 		} );
+		applyCurrency( form );
 		updateTotal( form );
 	}
 

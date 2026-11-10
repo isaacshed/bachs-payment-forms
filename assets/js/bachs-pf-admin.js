@@ -24,10 +24,22 @@
 		toggle( '.bachs-pf-show-options', 'options' === amountType );
 		toggle( '.bachs-pf-show-recurring-fixed', 'fixed' === recurring );
 		toggle( '.bachs-pf-show-recurring-optional', 'optional' === recurring );
+
+		// Currency choice: the table only when enabled, the right columns for the amount
+		// type, and no row for the main currency.
+		var multi = document.querySelector( '.bachs-pf-multi-toggle' );
+		toggle( '.bachs-pf-show-multi', !! ( multi && multi.checked ) );
+		toggle( '.bachs-pf-col-fixed', 'fixed' === amountType );
+		toggle( '.bachs-pf-col-custom', 'custom' === amountType );
+		var main = document.getElementById( 'bachs-pf-currency' );
+		var rows = document.querySelectorAll( '.bachs-pf-currency-table tr[data-currency]' );
+		for ( var i = 0; i < rows.length; i++ ) {
+			rows[ i ].hidden = !! main && rows[ i ].getAttribute( 'data-currency' ) === main.value;
+		}
 	}
 
 	document.addEventListener( 'change', function ( event ) {
-		if ( event.target && /^bachs_pf\[(amount_type|recurring)\]$/.test( event.target.name || '' ) ) {
+		if ( event.target && /^bachs_pf\[(amount_type|recurring|multi_currency|currency)\]$/.test( event.target.name || '' ) ) {
 			refresh();
 		}
 	} );

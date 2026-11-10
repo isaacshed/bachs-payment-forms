@@ -21,6 +21,7 @@ Bachs Payment Forms lets you build payment forms in WordPress and take payments 
 * **Recurring payments** — make a form always recurring (weekly, monthly, every 3 months or yearly), or let payers choose between a one-time and a recurring payment. Renewals are recorded automatically.
 * **Your own fields** — add text, email, phone, number, date, dropdown, radio and checkbox fields with a simple shortcode. Answers are saved with the payment and included in the emails.
 * **Many payment methods and currencies** — cards, bank transfer, mobile money and crypto stablecoins, all handled on the Bachs checkout. Price forms in USD, NGN, GHS, KES, MWK, RWF, TZS, UGX, XAF, XOF or ZMW.
+* **Optional currency choice** — let payers pick their currency on the form, at exact prices you set for each currency, or keep one currency per form.
 * **Webhook-verified payments** — a payment is only marked paid when Bachs's signed webhook confirms it, and the amount is checked against the form. Payments that don't match are held for your review.
 * **Receipts and notifications** — payers get an email receipt; you get an email for every payment.
 * **Payments dashboard** — see, filter and search every payment, open the full details, and export to CSV.
@@ -71,9 +72,18 @@ Supported types are text, email, tel, number, url, date, textarea, select, radio
 
 Forms can be priced in USD, NGN, GHS, KES, MWK, RWF, TZS, UGX, XAF, XOF or ZMW. With Adaptive Pricing enabled in your Bachs dashboard, payers can also pay in their own local currency. Bachs settles the funds to your balance in USD, or NGN when enabled.
 
+= Can payers choose their currency? =
+
+Yes, two ways, and you can use either:
+
+* **On the Bachs checkout page:** price a form in USD and turn on Adaptive Pricing in your Bachs dashboard. Payers see the amount in their local currency, converted at the live exchange rate, and can switch currency on the checkout page. No setup in WordPress is needed.
+* **On your form, at prices you set:** in the form's Payment settings, tick "Let payers choose a currency on this form" and give the price for each extra currency (for example USD 10, NGN 15,000, GHS 150). Payers pick their currency on the form and are charged exactly that price. For a list of amounts, add each currency's price to every option line, for example `Gold | 50 | NGN 75000 | GHS 600`; for a payer-entered amount, you can set a minimum and maximum per currency.
+
+Either way, Bachs settles the funds to your balance in USD, or NGN when enabled.
+
 = Why are recurring payments only available in USD? =
 
-Recurring payments use Bachs subscriptions, which currently bill USD cards only. A form priced in another currency is always one-time.
+Recurring payments use Bachs subscriptions, which currently bill USD cards only. A form priced in another currency is always one-time, and on a form that lets payers choose their currency, payers who choose a currency other than USD pay once.
 
 = How do payers cancel a recurring payment? =
 

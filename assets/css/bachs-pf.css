@@ -20,3 +20,6 @@
 .bachs-pf-secure { font-size: .875em; opacity: .7; margin: 0; }
 .bachs-pf-success { font-size: 1.1em; }
 .bachs-pf-notice { padding: .75em 1em; border-left: 4px solid #dba617; background: rgba(219, 166, 23, .08); }
+.bachs-pf-hint:empty { display: none; }
+.bachs-pf-recurring-note { display: block; margin-top: .25em; opacity: .75; }
+.bachs-pf-recurring-note[hidden] { display: none; }

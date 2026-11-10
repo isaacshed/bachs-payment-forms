@@ -89,6 +89,8 @@ class Bachs_PF_Forms {
 			'min_amount'      => '',
 			'max_amount'      => '',
 			'options'         => '',
+			'multi_currency'  => 'no',
+			'currency_prices' => array(),
 			'quantity'        => 'no',
 			'max_quantity'    => 10,
 			'quantity_label'  => __( 'Quantity', 'bachs-payment-forms' ),
@@ -164,20 +166,10 @@ class Bachs_PF_Forms {
 			}
 		}
 
-		$out['options'] = '';
-		$options        = self::parse_options( (string) $get( 'options' ) );
+		$options = self::parse_options( (string) $get( 'options' ) );
 		if ( ! empty( $options['errors'] ) ) {
 			$errors = array_merge( $errors, $options['errors'] );
 		}
-		$out['options'] = implode(
-			"\n",
-			array_map(
-				function ( $option ) {
-					return $option['label'] . ' | ' . $option['amount'];
-				},
-				$options['options']
-			)
-		);
 
 		if ( 'fixed' === $out['amount_type'] && ( '' === $out['amount'] || Bachs_PF_Money::compare( $out['amount'], 0 ) <= 0 ) ) {
 			$errors[] = __( 'A fixed-amount form needs an amount greater than zero.', 'bachs-payment-forms' );
@@ -188,6 +180,14 @@ class Bachs_PF_Forms {
 		if ( 'custom' === $out['amount_type'] && '' !== $out['min_amount'] && '' !== $out['max_amount'] && Bachs_PF_Money::compare( $out['min_amount'], $out['max_amount'] ) > 0 ) {
 			$errors[] = __( 'The minimum amount is higher than the maximum.', 'bachs-payment-forms' );
 		}
+
+		// Optional: let payers choose among several currencies, each at an exact price.
+		$multi                  = self::sanitize_currency_prices( $get( 'multi_currency' ), $get( 'currency_prices' ), $out, $options['options'] );
+		$out['multi_currency']  = $multi['multi_currency'];
+		$out['currency_prices'] = $multi['currency_prices'];
+		$errors                 = array_merge( $errors, $multi['errors'] );
+
+		$out['options'] = self::options_to_text( $options['options'], array_keys( $out['currency_prices'] ) );
 
 		$out['quantity']       = 'yes' === $get( 'quantity' ) ? 'yes' : 'no';
 		$out['max_quantity']   = max( 1, min( 1000, absint( $get( 'max_quantity' ) ) ) );
@@ -212,6 +212,20 @@ class Bachs_PF_Forms {
 			$out['recurring'] = 'none';
 		}
 
+		if ( 'fixed' === $out['recurring'] ) {
+			foreach ( array_keys( $out['currency_prices'] ) as $code ) {
+				if ( ! Bachs_PF_Money::supports_recurring( $code ) ) {
+					unset( $out['currency_prices'][ $code ] );
+					/* translators: %s: currency code */
+					$errors[] = sprintf( __( '%s was removed from the payer\'s currency choice: an always-recurring form can only offer currencies Bachs subscriptions can bill.', 'bachs-payment-forms' ), $code );
+				}
+			}
+			if ( empty( $out['currency_prices'] ) ) {
+				$out['multi_currency'] = 'no';
+			}
+			$out['options'] = self::options_to_text( $options['options'], array_keys( $out['currency_prices'] ) );
+		}
+
 		$out['button_label']    = sanitize_text_field( (string) $get( 'button_label' ) );
 		$out['success_message'] = sanitize_textarea_field( (string) $get( 'success_message' ) );
 		$out['redirect_url']    = esc_url_raw( trim( (string) $get( 'redirect_url' ) ), array( 'http', 'https' ) );
@@ -232,10 +246,12 @@ class Bachs_PF_Forms {
 	}
 
 	/**
-	 * Parse amount options, one per line: "Label | amount".
+	 * Parse amount options, one per line: "Label | amount", optionally followed by exact prices
+	 * in other currencies: "Gold | 50 | NGN 75000 | GHS 600". The first amount is in the form's
+	 * main currency.
 	 *
 	 * @param string $raw
-	 * @return array{options: array, errors: string[]}
+	 * @return array{options: array, errors: string[]} Each option: label, amount, prices (code => amount).
 	 */
 	public static function parse_options( $raw ) {
 		$options = array();
@@ -246,28 +262,199 @@ class Bachs_PF_Forms {
 			if ( '' === $line ) {
 				continue;
 			}
-			$pos = strrpos( $line, '|' );
-			if ( false === $pos ) {
+			$parts = array_map( 'trim', explode( '|', $line ) );
+			if ( count( $parts ) < 2 ) {
 				/* translators: %s: option line */
 				$errors[] = sprintf( __( 'Amount option "%s" needs the format "Label | amount".', 'bachs-payment-forms' ), $line );
 				continue;
 			}
-			$label  = sanitize_text_field( trim( substr( $line, 0, $pos ) ) );
-			$amount = Bachs_PF_Money::parse( trim( substr( $line, $pos + 1 ) ) );
+			$label  = sanitize_text_field( array_shift( $parts ) );
+			$amount = Bachs_PF_Money::parse( array_shift( $parts ) );
 			if ( '' === $label || null === $amount || Bachs_PF_Money::compare( $amount, 0 ) <= 0 ) {
 				/* translators: %s: option line */
 				$errors[] = sprintf( __( 'Amount option "%s" needs a label and an amount greater than zero.', 'bachs-payment-forms' ), $line );
 				continue;
 			}
+
+			$prices = array();
+			foreach ( $parts as $part ) {
+				if ( ! preg_match( '/^([A-Za-z]{3})\s+(\S+)$/', $part, $m ) || null === Bachs_PF_Money::parse( $m[2] ) || Bachs_PF_Money::compare( $m[2], 0 ) <= 0 ) {
+					/* translators: 1: price text, 2: option line */
+					$errors[] = sprintf( __( 'Could not read the price "%1$s" in amount option "%2$s". Write extra prices as "NGN 75000".', 'bachs-payment-forms' ), $part, $line );
+					continue;
+				}
+				$prices[ strtoupper( $m[1] ) ] = Bachs_PF_Money::format( Bachs_PF_Money::parse( $m[2] ) );
+			}
+
 			$options[] = array(
 				'label'  => $label,
 				'amount' => Bachs_PF_Money::format( $amount ),
+				'prices' => $prices,
 			);
 		}
 
 		return array(
 			'options' => $options,
 			'errors'  => $errors,
+		);
+	}
+
+	/**
+	 * Write options back as text, keeping only prices for currencies the form accepts.
+	 *
+	 * @param array    $options
+	 * @param string[] $codes Extra currencies, in order.
+	 * @return string
+	 */
+	public static function options_to_text( $options, $codes ) {
+		$lines = array();
+		foreach ( $options as $option ) {
+			$line = $option['label'] . ' | ' . $option['amount'];
+			foreach ( $codes as $code ) {
+				if ( isset( $option['prices'][ $code ] ) ) {
+					$line .= ' | ' . $code . ' ' . $option['prices'][ $code ];
+				}
+			}
+			$lines[] = $line;
+		}
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Validate the optional currency choice.
+	 *
+	 * @param mixed $enabled   'yes' to let payers choose.
+	 * @param mixed $raw       code => array( enabled, amount, min_amount, max_amount ).
+	 * @param array $out       Settings sanitised so far (currency, amount_type).
+	 * @param array $options   Parsed amount options.
+	 * @return array{multi_currency: string, currency_prices: array, errors: string[]}
+	 */
+	public static function sanitize_currency_prices( $enabled, $raw, $out, $options ) {
+		$errors = array();
+		$prices = array();
+		$raw    = is_array( $raw ) ? $raw : array();
+
+		if ( 'yes' !== $enabled ) {
+			return array(
+				'multi_currency'  => 'no',
+				'currency_prices' => array(),
+				'errors'          => array(),
+			);
+		}
+
+		foreach ( Bachs_PF_Money::currencies() as $code ) {
+			if ( $code === $out['currency'] || empty( $raw[ $code ]['enabled'] ) ) {
+				continue;
+			}
+			$row   = $raw[ $code ];
+			$entry = array(
+				'amount'     => '',
+				'min_amount' => '',
+				'max_amount' => '',
+			);
+			foreach ( array_keys( $entry ) as $key ) {
+				$value = isset( $row[ $key ] ) ? trim( (string) $row[ $key ] ) : '';
+				if ( '' === $value ) {
+					continue;
+				}
+				$parsed = Bachs_PF_Money::parse( $value );
+				if ( null === $parsed ) {
+					/* translators: 1: amount, 2: currency code */
+					$errors[] = sprintf( __( '"%1$s" is not a valid %2$s amount.', 'bachs-payment-forms' ), $value, $code );
+					continue;
+				}
+				$entry[ $key ] = Bachs_PF_Money::format( $parsed );
+			}
+
+			if ( 'fixed' === $out['amount_type'] && ( '' === $entry['amount'] || Bachs_PF_Money::compare( $entry['amount'], 0 ) <= 0 ) ) {
+				/* translators: %s: currency code */
+				$errors[] = sprintf( __( 'Enter the %s price, or untick that currency.', 'bachs-payment-forms' ), $code );
+				continue;
+			}
+			if ( 'custom' === $out['amount_type'] && '' !== $entry['min_amount'] && '' !== $entry['max_amount'] && Bachs_PF_Money::compare( $entry['min_amount'], $entry['max_amount'] ) > 0 ) {
+				/* translators: %s: currency code */
+				$errors[] = sprintf( __( 'The %s minimum is higher than its maximum.', 'bachs-payment-forms' ), $code );
+				continue;
+			}
+			if ( 'options' === $out['amount_type'] ) {
+				$missing = array();
+				foreach ( $options as $option ) {
+					if ( ! isset( $option['prices'][ $code ] ) ) {
+						$missing[] = $option['label'];
+					}
+				}
+				if ( $missing ) {
+					/* translators: 1: currency code, 2: option labels */
+					$errors[] = sprintf( __( '%1$s was not offered because these amount options have no %1$s price: %2$s.', 'bachs-payment-forms' ), $code, implode( ', ', $missing ) );
+					continue;
+				}
+			}
+
+			$prices[ $code ] = $entry;
+		}
+
+		if ( empty( $prices ) ) {
+			$errors[] = __( 'To let payers choose a currency, tick at least one other currency and give its price.', 'bachs-payment-forms' );
+		}
+
+		return array(
+			'multi_currency'  => $prices ? 'yes' : 'no',
+			'currency_prices' => $prices,
+			'errors'          => $errors,
+		);
+	}
+
+	/**
+	 * Currencies a payer can choose on this form: the main one first.
+	 *
+	 * @param array $settings
+	 * @return string[]
+	 */
+	public static function form_currencies( $settings ) {
+		$codes = array( $settings['currency'] );
+		if ( 'yes' === $settings['multi_currency'] && is_array( $settings['currency_prices'] ) ) {
+			foreach ( array_keys( $settings['currency_prices'] ) as $code ) {
+				if ( Bachs_PF_Money::is_supported( $code ) && $code !== $settings['currency'] ) {
+					$codes[] = $code;
+				}
+			}
+		}
+		return $codes;
+	}
+
+	/**
+	 * What the form costs in one of its currencies.
+	 *
+	 * @param array  $settings
+	 * @param string $currency
+	 * @return array|null amount, min_amount, max_amount, options (label, amount); null if not offered.
+	 */
+	public static function pricing_for( $settings, $currency ) {
+		if ( ! in_array( $currency, self::form_currencies( $settings ), true ) ) {
+			return null;
+		}
+
+		$main    = $currency === $settings['currency'];
+		$entry   = $main ? $settings : $settings['currency_prices'][ $currency ];
+		$options = array();
+
+		foreach ( self::parse_options( $settings['options'] )['options'] as $option ) {
+			$amount = $main ? $option['amount'] : ( isset( $option['prices'][ $currency ] ) ? $option['prices'][ $currency ] : null );
+			if ( null === $amount ) {
+				return null;
+			}
+			$options[] = array(
+				'label'  => $option['label'],
+				'amount' => $amount,
+			);
+		}
+
+		return array(
+			'currency'   => $currency,
+			'amount'     => isset( $entry['amount'] ) ? (string) $entry['amount'] : '',
+			'min_amount' => isset( $entry['min_amount'] ) ? (string) $entry['min_amount'] : '',
+			'max_amount' => isset( $entry['max_amount'] ) ? (string) $entry['max_amount'] : '',
+			'options'    => $options,
 		);
 	}
 

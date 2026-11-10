@@ -168,7 +168,36 @@ class Bachs_PF_Admin {
 		foreach ( Bachs_PF_Money::currencies() as $code ) {
 			echo '<option value="' . esc_attr( $code ) . '"' . selected( $s['currency'], $code, false ) . '>' . esc_html( $code ) . '</option>';
 		}
-		echo '</select></td></tr>';
+		echo '</select>';
+		echo '<p class="description">' . esc_html__( 'The main currency. With Adaptive Pricing on in your Bachs dashboard, a USD form also lets payers switch currency on the Bachs checkout page, at the live exchange rate.', 'bachs-payment-forms' ) . '</p>';
+
+		// Optional: payer chooses among exact prices in several currencies.
+		echo '<p><label><input type="checkbox" name="bachs_pf[multi_currency]" value="yes" class="bachs-pf-multi-toggle"' . checked( $s['multi_currency'], 'yes', false ) . '> ' . esc_html__( 'Let payers choose a currency on this form, at prices you set', 'bachs-payment-forms' ) . '</label></p>';
+		echo '<div class="bachs-pf-show-multi">';
+		echo '<table class="widefat striped bachs-pf-currency-table" style="max-width:560px"><thead><tr>';
+		echo '<th scope="col">' . esc_html__( 'Also accept', 'bachs-payment-forms' ) . '</th>';
+		echo '<th scope="col" class="bachs-pf-col-fixed">' . esc_html__( 'Price', 'bachs-payment-forms' ) . '</th>';
+		echo '<th scope="col" class="bachs-pf-col-custom">' . esc_html__( 'Minimum', 'bachs-payment-forms' ) . '</th>';
+		echo '<th scope="col" class="bachs-pf-col-custom">' . esc_html__( 'Maximum', 'bachs-payment-forms' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		foreach ( Bachs_PF_Money::currencies() as $code ) {
+			$row  = isset( $s['currency_prices'][ $code ] ) ? $s['currency_prices'][ $code ] : array();
+			$name = 'bachs_pf[currency_prices][' . $code . ']';
+			$val  = function ( $key ) use ( $row ) {
+				return isset( $row[ $key ] ) ? (string) $row[ $key ] : '';
+			};
+			echo '<tr data-currency="' . esc_attr( $code ) . '">';
+			echo '<td><label><input type="checkbox" name="' . esc_attr( $name . '[enabled]' ) . '" value="1"' . checked( ! empty( $row ), true, false ) . '> ' . esc_html( $code ) . '</label></td>';
+			echo '<td class="bachs-pf-col-fixed"><input type="text" inputmode="decimal" class="small-text" name="' . esc_attr( $name . '[amount]' ) . '" value="' . esc_attr( $val( 'amount' ) ) . '" aria-label="' . esc_attr( $code . ' ' . __( 'price', 'bachs-payment-forms' ) ) . '"></td>';
+			echo '<td class="bachs-pf-col-custom"><input type="text" inputmode="decimal" class="small-text" name="' . esc_attr( $name . '[min_amount]' ) . '" value="' . esc_attr( $val( 'min_amount' ) ) . '" aria-label="' . esc_attr( $code . ' ' . __( 'minimum', 'bachs-payment-forms' ) ) . '"></td>';
+			echo '<td class="bachs-pf-col-custom"><input type="text" inputmode="decimal" class="small-text" name="' . esc_attr( $name . '[max_amount]' ) . '" value="' . esc_attr( $val( 'max_amount' ) ) . '" aria-label="' . esc_attr( $code . ' ' . __( 'maximum', 'bachs-payment-forms' ) ) . '"></td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+		echo '<p class="description bachs-pf-show-options">' . esc_html__( 'For a list of amounts, add each extra currency\'s price to every option line, for example: Gold | 50 | NGN 75000 | GHS 600', 'bachs-payment-forms' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Payers are charged exactly the price for the currency they choose. Recurring payments are only available in USD; payers who choose another currency pay once.', 'bachs-payment-forms' ) . '</p>';
+		echo '</div>';
+		echo '</td></tr>';
 
 		// Amount type.
 		$types = array(
@@ -222,7 +251,7 @@ class Bachs_PF_Admin {
 			echo '<label><input type="checkbox" name="bachs_pf[cadences][]" value="' . esc_attr( $key ) . '"' . checked( in_array( $key, $s['cadences'], true ), true, false ) . '> ' . esc_html( $cadence[2] ) . '</label> ';
 		}
 		echo '</p>';
-		echo '<p class="description">' . esc_html__( 'Recurring payments use Bachs subscriptions, which currently bill USD cards only. Payers manage or cancel their subscription from the Bachs customer portal.', 'bachs-payment-forms' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Recurring payments use Bachs subscriptions, which currently bill USD cards only. You can cancel a subscription from your Bachs dashboard.', 'bachs-payment-forms' ) . '</p>';
 		echo '</td></tr>';
 
 		// Checkout and after payment.
@@ -258,7 +287,7 @@ class Bachs_PF_Admin {
 		// Unchecked checkboxes are absent from POST.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised by Bachs_PF_Forms::sanitize_settings().
 		$input = isset( $_POST['bachs_pf'] ) && is_array( $_POST['bachs_pf'] ) ? wp_unslash( $_POST['bachs_pf'] ) : array();
-		foreach ( array( 'quantity', 'require_login', 'send_receipt', 'notify_admin' ) as $box ) {
+		foreach ( array( 'quantity', 'multi_currency', 'require_login', 'send_receipt', 'notify_admin' ) as $box ) {
 			if ( ! isset( $input[ $box ] ) ) {
 				$input[ $box ] = 'no';
 			}
@@ -314,6 +343,10 @@ class Bachs_PF_Admin {
 				} else {
 					/* translators: %s: currency code */
 					echo esc_html( sprintf( __( 'Payer enters amount (%s)', 'bachs-payment-forms' ), $s['currency'] ) );
+				}
+				if ( 'yes' === $s['multi_currency'] && count( Bachs_PF_Forms::form_currencies( $s ) ) > 1 ) {
+					/* translators: %s: comma-separated currency codes */
+					echo '<br><span class="description">' . esc_html( sprintf( __( 'Also in %s', 'bachs-payment-forms' ), implode( ', ', array_slice( Bachs_PF_Forms::form_currencies( $s ), 1 ) ) ) ) . '</span>';
 				}
 				if ( 'none' !== $s['recurring'] ) {
 					echo '<br><span class="description">' . esc_html( 'fixed' === $s['recurring'] ? Bachs_PF_Money::cadence_label( $s['cadence'] ) : __( 'One-time or recurring', 'bachs-payment-forms' ) ) . '</span>';

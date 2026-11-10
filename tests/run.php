@@ -160,6 +160,95 @@ $p = Bachs_PF_Checkout::build_payment( $form, Bachs_PF_Forms::get_settings( 10 )
 check( 'user ID comes from the session, not the form', 7 === $p['user_id'] );
 $GLOBALS['T']['user_id'] = 0;
 
+// --- Multi-currency (optional) ----------------------------------------------------------------
+
+setup();
+$r = Bachs_PF_Forms::sanitize_settings( array( 'currency' => 'USD', 'amount' => '10', 'multi_currency' => 'yes' ) );
+check( 'multi-currency without extra currencies is switched off', 'no' === $r['settings']['multi_currency'] && ! empty( $r['errors'] ) );
+
+$r = Bachs_PF_Forms::sanitize_settings(
+	array(
+		'currency'        => 'USD',
+		'amount'          => '10',
+		'multi_currency'  => 'yes',
+		'currency_prices' => array(
+			'NGN' => array( 'enabled' => '1', 'amount' => '15,000' ),
+			'GHS' => array( 'enabled' => '1', 'amount' => '' ),
+			'USD' => array( 'enabled' => '1', 'amount' => '99' ),
+			'KES' => array( 'amount' => '1300' ),
+			'EUR' => array( 'enabled' => '1', 'amount' => '9' ),
+		),
+	)
+);
+check( 'fixed: priced currencies kept, unpriced/unticked/main/unsupported dropped', array( 'NGN' ) === array_keys( $r['settings']['currency_prices'] ) && '15000.00' === $r['settings']['currency_prices']['NGN']['amount'] );
+check( 'fixed: missing price reported', 1 === count( $r['errors'] ) && false !== strpos( $r['errors'][0], 'GHS' ) );
+check( 'form currencies: main first', array( 'USD', 'NGN' ) === Bachs_PF_Forms::form_currencies( $r['settings'] ) );
+
+$r = Bachs_PF_Forms::sanitize_settings(
+	array(
+		'currency'        => 'USD',
+		'amount_type'     => 'options',
+		'options'         => "Bronze | 10 | NGN 15000 | GHS 150\nGold | 50 | NGN 75000",
+		'multi_currency'  => 'yes',
+		'currency_prices' => array( 'NGN' => array( 'enabled' => '1' ), 'GHS' => array( 'enabled' => '1' ) ),
+	)
+);
+check( 'options: currency missing on an option is not offered', array( 'NGN' ) === array_keys( $r['settings']['currency_prices'] ) && false !== strpos( implode( ' ', $r['errors'] ), 'Gold' ) );
+check( 'options: text normalised to offered currencies', "Bronze | 10.00 | NGN 15000.00\nGold | 50.00 | NGN 75000.00" === $r['settings']['options'] );
+$bad = Bachs_PF_Forms::parse_options( 'Gold | 50 | Naira 75000' );
+check( 'options: unreadable extra price reported', 1 === count( $bad['errors'] ) );
+
+$r = Bachs_PF_Forms::sanitize_settings( array( 'currency' => 'USD', 'amount' => '10', 'recurring' => 'fixed', 'multi_currency' => 'yes', 'currency_prices' => array( 'NGN' => array( 'enabled' => '1', 'amount' => '15000' ) ) ) );
+check( 'always-recurring form drops non-USD choices', 'no' === $r['settings']['multi_currency'] && array() === $r['settings']['currency_prices'] );
+
+$r = Bachs_PF_Forms::sanitize_settings( array( 'currency' => 'USD', 'amount_type' => 'custom', 'multi_currency' => 'yes', 'currency_prices' => array( 'NGN' => array( 'enabled' => '1', 'min_amount' => '5000', 'max_amount' => '100' ) ) ) );
+check( 'custom: per-currency min above max rejected', 'no' === $r['settings']['multi_currency'] );
+
+function multi_form( $settings, $id = 10 ) {
+	return make_form( array_merge( array( 'currency' => 'USD', 'multi_currency' => 'yes' ), $settings ), '', $id );
+}
+
+setup();
+$form = multi_form( array( 'amount' => '10.00', 'currency_prices' => array( 'NGN' => array( 'amount' => '15000.00', 'min_amount' => '', 'max_amount' => '' ) ) ) );
+$s    = Bachs_PF_Forms::get_settings( 10 );
+$p    = Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'NGN', 'bachs_pf_amount' => '1' ) ) );
+check( 'payer picks NGN: priced in NGN at the set price', 'NGN' === $p['currency'] && '15000.00' === $p['amount'] );
+check( 'payer picks the main currency', 'USD' === Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'USD' ) ) )['currency'] );
+check( 'no choice posted: main currency', '10.00' === Bachs_PF_Checkout::build_payment( $form, $s, base_input() )['amount'] );
+check( 'currency not offered is refused', is_wp_error( Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'GHS' ) ) ) ) );
+check( 'unsupported currency is refused', is_wp_error( Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'EUR' ) ) ) ) );
+
+$single = make_form( array( 'currency' => 'USD', 'amount' => '10.00', 'currency_prices' => array( 'NGN' => array( 'amount' => '15000.00' ) ) ), '', 12 );
+$p      = Bachs_PF_Checkout::build_payment( $single, Bachs_PF_Forms::get_settings( 12 ), base_input( array( 'bachs_pf_currency' => 'NGN' ) ) );
+check( 'option off: posted currency ignored, form unchanged', 'USD' === $p['currency'] && '10.00' === $p['amount'] );
+
+$form = multi_form( array( 'amount_type' => 'custom', 'min_amount' => '5.00', 'currency_prices' => array( 'NGN' => array( 'amount' => '', 'min_amount' => '5000.00', 'max_amount' => '' ) ) ) );
+$s    = Bachs_PF_Forms::get_settings( 10 );
+check( 'custom: NGN minimum enforced', is_wp_error( Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'NGN', 'bachs_pf_amount' => '4999' ) ) ) ) );
+check( 'custom: NGN amount accepted', '6000.00' === Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'NGN', 'bachs_pf_amount' => '6000' ) ) )['amount'] );
+check( 'custom: USD keeps its own minimum', ! is_wp_error( Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'USD', 'bachs_pf_amount' => '6' ) ) ) ) );
+
+$form = multi_form( array( 'amount_type' => 'options', 'options' => "Bronze | 10.00 | NGN 15000.00\nGold | 50.00 | NGN 75000.00", 'currency_prices' => array( 'NGN' => array() ), 'quantity' => 'yes' ) );
+$p    = Bachs_PF_Checkout::build_payment( $form, Bachs_PF_Forms::get_settings( 10 ), base_input( array( 'bachs_pf_currency' => 'NGN', 'bachs_pf_option' => '1', 'bachs_pf_quantity' => '2' ) ) );
+check( 'options: NGN option price times quantity', 'NGN' === $p['currency'] && '150000.00' === $p['amount'] && 'Gold' === $p['fields']['_option']['value'] );
+
+$form = multi_form( array( 'amount' => '10.00', 'recurring' => 'optional', 'cadences' => array( 'month' ), 'currency_prices' => array( 'NGN' => array( 'amount' => '15000.00' ) ) ) );
+$s    = Bachs_PF_Forms::get_settings( 10 );
+check( 'recurring in NGN refused with a clear message', is_wp_error( $e = Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'NGN', 'bachs_pf_cadence' => 'month' ) ) ) ) && false !== strpos( $e->get_error_message(), 'one-time' ) );
+check( 'one-time in NGN allowed on a recurring-optional form', '' === Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'NGN', 'bachs_pf_cadence' => 'once' ) ) )['cadence'] );
+check( 'recurring in USD still allowed', 'month' === Bachs_PF_Checkout::build_payment( $form, $s, base_input( array( 'bachs_pf_currency' => 'USD', 'bachs_pf_cadence' => 'month' ) ) )['cadence'] );
+
+// The checkout is created in the chosen currency, and the webhook checks that currency.
+setup();
+multi_form( array( 'amount' => '10.00', 'currency_prices' => array( 'NGN' => array( 'amount' => '15000.00' ) ) ) );
+session_ok();
+Bachs_PF_Checkout::start_payment( 10, base_input( array( 'bachs_pf_currency' => 'NGN' ) ) );
+$req = last_request();
+check( 'checkout priced directly in NGN', 'NGN' === $req['body']['pricing']['currency'] && '15000.00' === $req['body']['pricing']['amount'] && ! isset( $req['body']['billing_currency'] ) );
+$pay = Bachs_PF_Payments::get( 1 );
+Bachs_PF_Webhook::dispatch( event( 'evt_n1', 'collection.succeeded', array( 'checkout_id' => 'chk_1', 'charge_id' => 'ch_1', 'status' => 'SUCCEEDED', 'amount' => '150.00', 'currency' => 'NGN', 'reference' => $pay->reference, 'metadata' => array( 'bachs_pf_payment_id' => '1' ) ) ) );
+check( 'short NGN payment held for review', 'review' === Bachs_PF_Payments::get( 1 )->status );
+
 // --- Creating the checkout -------------------------------------------------------------------
 
 setup();
@@ -391,6 +480,20 @@ $_GET = array();
 make_form( array( 'amount' => '10.00', 'stock' => '1' ), '', 11 );
 Bachs_PF_Payments::insert( array( 'form_id' => 11, 'status' => 'paid', 'reference' => 'bpf_sold', 'quantity' => 1 ) );
 check( 'sold-out form shows a notice instead of the form', false !== strpos( Bachs_PF_Renderer::shortcode( array( 'id' => 11 ) ), 'sold out' ) );
+
+// Rendering the currency choice.
+setup();
+$_GET = array();
+multi_form( array( 'amount' => '10.00', 'recurring' => 'optional', 'cadences' => array( 'month' ), 'currency_prices' => array( 'NGN' => array( 'amount' => '15000.00' ) ) ) );
+$html = Bachs_PF_Renderer::shortcode( array( 'id' => 10 ) );
+check( 'multi-currency form shows a currency dropdown', false !== strpos( $html, 'name="bachs_pf_currency"' ) && false !== strpos( $html, '<option value="NGN"' ) );
+preg_match( '/data-pricing="([^"]+)"/', $html, $m );
+$data = isset( $m[1] ) ? json_decode( html_entity_decode( $m[1], ENT_QUOTES ), true ) : null;
+check( 'pricing data for every currency', isset( $data['USD'], $data['NGN'] ) && '15000.00' === $data['NGN']['amount'] && false === $data['NGN']['recurring'] && true === $data['USD']['recurring'] );
+check( 'recurring note rendered for multi-currency', false !== strpos( $html, 'bachs-pf-recurring-note' ) );
+make_form( array( 'amount' => '10.00' ), '', 13 );
+$html = Bachs_PF_Renderer::shortcode( array( 'id' => 13 ) );
+check( 'single-currency form has no dropdown or pricing data', false === strpos( $html, 'bachs_pf_currency' ) && false === strpos( $html, 'data-pricing' ) );
 
 // --- CSV -------------------------------------------------------------------------------------
 

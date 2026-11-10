@@ -294,6 +294,7 @@ function wp_register_script( ...$a ) {}
 function wp_enqueue_style( ...$a ) {}
 function wp_enqueue_script( ...$a ) {}
 function wp_localize_script( ...$a ) {}
+function wp_list_pluck( $list, $field ) { return array_map( function ( $i ) use ( $field ) { return is_array( $i ) ? $i[ $field ] : $i->$field; }, $list ); }
 function selected( $a, $b, $echo = true ) { return (string) $a === (string) $b ? ' selected="selected"' : ''; }
 function checked( $a, $b = true, $echo = true ) { return (string) $a === (string) $b ? ' checked="checked"' : ''; }
 

@@ -107,12 +107,18 @@ class Bachs_PF_Checkout {
 			$errors[] = __( 'Please enter a valid email address.', 'bachs-payment-forms' );
 		}
 
+		// Currency: the form's own, or the payer's choice when the form offers several.
 		$currency = $settings['currency'];
-		if ( ! Bachs_PF_Money::is_supported( $currency ) ) {
-			$errors[] = __( 'This form uses a currency Bachs does not support.', 'bachs-payment-forms' );
+		if ( 'yes' === $settings['multi_currency'] && isset( $input['bachs_pf_currency'] ) && is_scalar( $input['bachs_pf_currency'] ) ) {
+			$currency = strtoupper( sanitize_text_field( (string) $input['bachs_pf_currency'] ) );
 		}
 
-		// Unit amount.
+		$price = Bachs_PF_Money::is_supported( $currency ) ? Bachs_PF_Forms::pricing_for( $settings, $currency ) : null;
+		if ( null === $price ) {
+			return new WP_Error( 'bachs_pf_invalid', __( 'Please choose one of the currencies offered on this form.', 'bachs-payment-forms' ) );
+		}
+
+		// Unit amount, in the chosen currency.
 		$unit = null;
 		switch ( $settings['amount_type'] ) {
 			case 'custom':
@@ -120,17 +126,17 @@ class Bachs_PF_Checkout {
 				if ( null === $unit || Bachs_PF_Money::compare( $unit, 0 ) <= 0 ) {
 					$errors[] = __( 'Please enter a valid amount.', 'bachs-payment-forms' );
 					$unit     = null;
-				} elseif ( '' !== $settings['min_amount'] && Bachs_PF_Money::compare( $unit, $settings['min_amount'] ) < 0 ) {
+				} elseif ( '' !== $price['min_amount'] && Bachs_PF_Money::compare( $unit, $price['min_amount'] ) < 0 ) {
 					/* translators: %s: minimum amount with currency */
-					$errors[] = sprintf( __( 'The minimum amount is %s.', 'bachs-payment-forms' ), Bachs_PF_Money::display( $settings['min_amount'], $currency ) );
-				} elseif ( '' !== $settings['max_amount'] && Bachs_PF_Money::compare( $unit, $settings['max_amount'] ) > 0 ) {
+					$errors[] = sprintf( __( 'The minimum amount is %s.', 'bachs-payment-forms' ), Bachs_PF_Money::display( $price['min_amount'], $currency ) );
+				} elseif ( '' !== $price['max_amount'] && Bachs_PF_Money::compare( $unit, $price['max_amount'] ) > 0 ) {
 					/* translators: %s: maximum amount with currency */
-					$errors[] = sprintf( __( 'The maximum amount is %s.', 'bachs-payment-forms' ), Bachs_PF_Money::display( $settings['max_amount'], $currency ) );
+					$errors[] = sprintf( __( 'The maximum amount is %s.', 'bachs-payment-forms' ), Bachs_PF_Money::display( $price['max_amount'], $currency ) );
 				}
 				break;
 
 			case 'options':
-				$options = Bachs_PF_Forms::parse_options( $settings['options'] )['options'];
+				$options = $price['options'];
 				$index   = isset( $input['bachs_pf_option'] ) && is_scalar( $input['bachs_pf_option'] ) && ctype_digit( (string) $input['bachs_pf_option'] ) ? (int) $input['bachs_pf_option'] : -1;
 				if ( ! isset( $options[ $index ] ) ) {
 					$errors[] = __( 'Please choose an amount.', 'bachs-payment-forms' );
@@ -141,7 +147,7 @@ class Bachs_PF_Checkout {
 				break;
 
 			default:
-				$unit = '' !== $settings['amount'] ? (float) $settings['amount'] : null;
+				$unit = '' !== $price['amount'] ? (float) $price['amount'] : null;
 				if ( null === $unit || Bachs_PF_Money::compare( $unit, 0 ) <= 0 ) {
 					$errors[] = __( 'This form has no amount set.', 'bachs-payment-forms' );
 				}
@@ -182,7 +188,8 @@ class Bachs_PF_Checkout {
 			}
 		}
 		if ( '' !== $cadence && ! Bachs_PF_Money::supports_recurring( $currency ) ) {
-			$errors[] = __( 'Recurring payments are not available in this currency.', 'bachs-payment-forms' );
+			/* translators: %s: currency code */
+			$errors[] = sprintf( __( 'Recurring payments are not available in %s. Choose a one-time payment, or pay in USD.', 'bachs-payment-forms' ), $currency );
 		}
 
 		// Terms.

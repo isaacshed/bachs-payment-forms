@@ -47,6 +47,12 @@ class Bachs_PF_Renderer {
 				'i18n'    => array(
 					'working' => __( 'Taking you to the secure checkout…', 'bachs-payment-forms' ),
 					'error'   => __( 'Something went wrong. Please try again.', 'bachs-payment-forms' ),
+					/* translators: %s: currency code */
+					'amount'  => __( 'Amount (%s)', 'bachs-payment-forms' ),
+					/* translators: %s: amount with currency */
+					'minimum' => __( 'Minimum %s', 'bachs-payment-forms' ),
+					/* translators: %s: amount with currency */
+					'maximum' => __( 'maximum %s', 'bachs-payment-forms' ),
 				),
 			)
 		);
@@ -142,7 +148,7 @@ class Bachs_PF_Renderer {
 
 		$user  = wp_get_current_user();
 		$html  = '<div class="bachs-pf" id="' . esc_attr( $prefix ) . '">';
-		$html .= '<form class="bachs-pf-form" method="post" novalidate data-currency="' . esc_attr( $currency ) . '">';
+		$html .= '<form class="bachs-pf-form" method="post" novalidate data-currency="' . esc_attr( $currency ) . '"' . self::pricing_attribute( $settings ) . '>';
 
 		if ( $show_title ) {
 			$html .= '<h3 class="bachs-pf-title">' . esc_html( get_the_title( $form ) ) . '</h3>';
@@ -159,6 +165,7 @@ class Bachs_PF_Renderer {
 		$html .= self::input( $prefix . '-name', 'bachs_pf_name', __( 'Full name', 'bachs-payment-forms' ), 'text', $user->exists() ? $user->display_name : '', 'autocomplete="name"' );
 		$html .= self::input( $prefix . '-email', 'bachs_pf_email', __( 'Email', 'bachs-payment-forms' ), 'email', $user->exists() ? $user->user_email : '', 'autocomplete="email"' );
 
+		$html .= self::render_currency_choice( $prefix, $settings );
 		$html .= self::render_amount( $prefix, $settings );
 
 		if ( 'yes' === $settings['quantity'] ) {
@@ -194,6 +201,60 @@ class Bachs_PF_Renderer {
 	}
 
 	/**
+	 * Currency dropdown, only when the form lets payers choose.
+	 *
+	 * @param string $prefix
+	 * @param array  $settings
+	 * @return string
+	 */
+	protected static function render_currency_choice( $prefix, $settings ) {
+		if ( 'yes' !== $settings['multi_currency'] ) {
+			return '';
+		}
+		$codes = Bachs_PF_Forms::form_currencies( $settings );
+		if ( count( $codes ) < 2 ) {
+			return '';
+		}
+
+		$html  = '<div class="bachs-pf-field bachs-pf-currency-field"><label for="' . esc_attr( $prefix . '-currency' ) . '">' . esc_html__( 'Currency', 'bachs-payment-forms' ) . '</label>';
+		$html .= '<select id="' . esc_attr( $prefix . '-currency' ) . '" name="bachs_pf_currency" class="bachs-pf-currency">';
+		foreach ( $codes as $code ) {
+			$html .= '<option value="' . esc_attr( $code ) . '"' . selected( $code, $settings['currency'], false ) . '>' . esc_html( $code ) . '</option>';
+		}
+		return $html . '</select></div>';
+	}
+
+	/**
+	 * Per-currency prices for the script, as a data attribute (empty for single-currency forms).
+	 * Display only: the server prices every payment itself.
+	 *
+	 * @param array $settings
+	 * @return string
+	 */
+	protected static function pricing_attribute( $settings ) {
+		if ( 'yes' !== $settings['multi_currency'] ) {
+			return '';
+		}
+
+		$data = array();
+		foreach ( Bachs_PF_Forms::form_currencies( $settings ) as $code ) {
+			$price = Bachs_PF_Forms::pricing_for( $settings, $code );
+			if ( null === $price ) {
+				continue;
+			}
+			$data[ $code ] = array(
+				'amount'    => $price['amount'],
+				'min'       => $price['min_amount'],
+				'max'       => $price['max_amount'],
+				'options'   => wp_list_pluck( $price['options'], 'amount' ),
+				'recurring' => Bachs_PF_Money::supports_recurring( $code ),
+			);
+		}
+
+		return ' data-pricing="' . esc_attr( wp_json_encode( $data ) ) . '"';
+	}
+
+	/**
 	 * @param string $prefix
 	 * @param array  $settings
 	 * @return string
@@ -212,20 +273,18 @@ class Bachs_PF_Renderer {
 					/* translators: %s: amount with currency */
 					$hint[] = sprintf( __( 'maximum %s', 'bachs-payment-forms' ), Bachs_PF_Money::display( $settings['max_amount'], $currency ) );
 				}
-				$html  = '<div class="bachs-pf-field bachs-pf-amount"><label for="' . esc_attr( $prefix . '-amount' ) . '">';
+				$html  = '<div class="bachs-pf-field bachs-pf-amount"><label for="' . esc_attr( $prefix . '-amount' ) . '" class="bachs-pf-amount-label">';
 				/* translators: %s: currency code */
 				$html .= esc_html( sprintf( __( 'Amount (%s)', 'bachs-payment-forms' ), $currency ) ) . '</label>';
 				$html .= '<input type="number" inputmode="decimal" id="' . esc_attr( $prefix . '-amount' ) . '" name="bachs_pf_amount" class="bachs-pf-unit" step="0.01" min="' . esc_attr( '' !== $settings['min_amount'] ? $settings['min_amount'] : '0.01' ) . '"' . ( '' !== $settings['max_amount'] ? ' max="' . esc_attr( $settings['max_amount'] ) . '"' : '' ) . ' required>';
-				if ( $hint ) {
-					$html .= '<small>' . esc_html( implode( ', ', $hint ) ) . '</small>';
-				}
+				$html .= '<small class="bachs-pf-hint">' . esc_html( implode( ', ', $hint ) ) . '</small>';
 				return $html . '</div>';
 
 			case 'options':
 				$options = Bachs_PF_Forms::parse_options( $settings['options'] )['options'];
 				$html    = '<fieldset class="bachs-pf-field bachs-pf-options"><legend>' . esc_html__( 'Choose an amount', 'bachs-payment-forms' ) . '</legend>';
 				foreach ( $options as $i => $option ) {
-					$html .= '<label><input type="radio" name="bachs_pf_option" class="bachs-pf-unit" value="' . (int) $i . '" data-amount="' . esc_attr( $option['amount'] ) . '"' . ( 0 === $i ? ' checked' : '' ) . ' required> ' . esc_html( $option['label'] ) . ' <span class="bachs-pf-price">' . esc_html( Bachs_PF_Money::display( $option['amount'], $currency ) ) . '</span></label>';
+					$html .= '<label><input type="radio" name="bachs_pf_option" class="bachs-pf-unit" value="' . (int) $i . '" data-amount="' . esc_attr( $option['amount'] ) . '"' . ( 0 === $i ? ' checked' : '' ) . ' required> ' . esc_html( $option['label'] ) . ' <span class="bachs-pf-price" data-index="' . (int) $i . '">' . esc_html( Bachs_PF_Money::display( $option['amount'], $currency ) ) . '</span></label>';
 				}
 				return $html . '</fieldset>';
 
@@ -260,7 +319,11 @@ class Bachs_PF_Renderer {
 		foreach ( $settings['cadences'] as $cadence ) {
 			$html .= '<option value="' . esc_attr( $cadence ) . '">' . esc_html( Bachs_PF_Money::cadence_label( $cadence ) ) . '</option>';
 		}
-		return $html . '</select></div>';
+		$html .= '</select>';
+		if ( 'yes' === $settings['multi_currency'] ) {
+			$html .= '<small class="bachs-pf-recurring-note" hidden>' . esc_html__( 'Recurring payments are only available in USD, so this payment will be one-time.', 'bachs-payment-forms' ) . '</small>';
+		}
+		return $html . '</div>';
 	}
 
 	/**
