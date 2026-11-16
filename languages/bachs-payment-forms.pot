@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-10T13:20:31+00:00\n"
+"POT-Creation-Date: 2026-11-16T13:00:21+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: bachs-payment-forms\n"
@@ -40,7 +40,7 @@ msgid "https://bachs.io"
 msgstr ""
 
 #: includes/admin/class-bachs-pf-admin.php:36
-#: includes/admin/class-bachs-pf-admin.php:412
+#: includes/admin/class-bachs-pf-admin.php:413
 msgid "Payments"
 msgstr ""
 
@@ -58,499 +58,499 @@ msgid "Describe what the payer is paying for."
 msgstr ""
 
 #. translators: %s: settings URL
-#: includes/admin/class-bachs-pf-admin.php:96
+#: includes/admin/class-bachs-pf-admin.php:97
 msgid "Bachs Payment Forms: add your Bachs API key for the current mode in <a href=\"%s\">Settings</a> before taking payments."
 msgstr ""
 
 #. translators: %s: settings URL
-#: includes/admin/class-bachs-pf-admin.php:99
+#: includes/admin/class-bachs-pf-admin.php:100
 msgid "Bachs Payment Forms: add your webhook signing secret in <a href=\"%s\">Settings</a>. Payments are only marked paid when Bachs's signed webhook arrives."
 msgstr ""
 
 #. translators: %s: settings URL
-#: includes/admin/class-bachs-pf-admin.php:104
+#: includes/admin/class-bachs-pf-admin.php:105
 msgid "Bachs Payment Forms is in <strong>test mode</strong>. Switch it off in <a href=\"%s\">Settings</a> to take real payments."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:110
+#: includes/admin/class-bachs-pf-admin.php:111
 msgid "Please check the payment settings:"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:125
+#: includes/admin/class-bachs-pf-admin.php:126
 msgid "Payment settings"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:126
-#: includes/admin/class-bachs-pf-admin.php:318
+#: includes/admin/class-bachs-pf-admin.php:127
+#: includes/admin/class-bachs-pf-admin.php:319
 msgid "Shortcode"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:127
+#: includes/admin/class-bachs-pf-admin.php:128
 msgid "Adding fields"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:135
+#: includes/admin/class-bachs-pf-admin.php:136
 msgid "Publish the form to get its shortcode."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:139
+#: includes/admin/class-bachs-pf-admin.php:140
 msgid "Paste this into any page or post:"
 msgstr ""
 
 #. translators: %d: number of payments
-#: includes/admin/class-bachs-pf-admin.php:145
+#: includes/admin/class-bachs-pf-admin.php:146
 msgid "%d paid payment"
 msgid_plural "%d paid payments"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/admin/class-bachs-pf-admin.php:150
+#: includes/admin/class-bachs-pf-admin.php:151
 msgid "Name and email are always collected. Add more fields anywhere in the form content:"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:153
+#: includes/admin/class-bachs-pf-admin.php:154
 msgid "Types: text, email, tel, number, url, date, textarea, select, radio, checkbox."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:168
+#: includes/admin/class-bachs-pf-admin.php:169
 #: includes/class-bachs-pf-renderer.php:219
 msgid "Currency"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:173
+#: includes/admin/class-bachs-pf-admin.php:174
 msgid "The main currency. With Adaptive Pricing on in your Bachs dashboard, a USD form also lets payers switch currency on the Bachs checkout page, at the live exchange rate."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:176
+#: includes/admin/class-bachs-pf-admin.php:177
 msgid "Let payers choose a currency on this form, at prices you set"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:179
+#: includes/admin/class-bachs-pf-admin.php:180
 msgid "Also accept"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:180
-msgid "Price"
-msgstr ""
-
 #: includes/admin/class-bachs-pf-admin.php:181
-#: includes/admin/class-bachs-pf-admin.php:215
-msgid "Minimum"
+msgid "Price"
 msgstr ""
 
 #: includes/admin/class-bachs-pf-admin.php:182
 #: includes/admin/class-bachs-pf-admin.php:216
+msgid "Minimum"
+msgstr ""
+
+#: includes/admin/class-bachs-pf-admin.php:183
+#: includes/admin/class-bachs-pf-admin.php:217
 msgid "Maximum"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:192
+#: includes/admin/class-bachs-pf-admin.php:193
 msgid "price"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:193
+#: includes/admin/class-bachs-pf-admin.php:194
 msgid "minimum"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:194
+#: includes/admin/class-bachs-pf-admin.php:195
 msgid "maximum"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:198
+#: includes/admin/class-bachs-pf-admin.php:199
 msgid "For a list of amounts, add each extra currency's price to every option line, for example: Gold | 50 | NGN 75000 | GHS 600"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:199
+#: includes/admin/class-bachs-pf-admin.php:200
 msgid "Payers are charged exactly the price for the currency they choose. Recurring payments are only available in USD; payers who choose another currency pay once."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:205
+#: includes/admin/class-bachs-pf-admin.php:206
 msgid "Fixed amount"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:206
+#: includes/admin/class-bachs-pf-admin.php:207
 msgid "Payer enters the amount (donations, invoices)"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:207
+#: includes/admin/class-bachs-pf-admin.php:208
 msgid "Payer chooses from a list"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:209
-#: includes/admin/class-bachs-pf-admin.php:214
-#: includes/admin/class-bachs-pf-admin.php:319
-#: includes/admin/class-bachs-pf-admin.php:455
+#: includes/admin/class-bachs-pf-admin.php:210
+#: includes/admin/class-bachs-pf-admin.php:215
+#: includes/admin/class-bachs-pf-admin.php:320
+#: includes/admin/class-bachs-pf-admin.php:456
 #: includes/admin/class-bachs-pf-payments-table.php:49
 #: includes/class-bachs-pf-emails.php:103
 #: includes/class-bachs-pf-renderer.php:292
 msgid "Amount"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:216
+#: includes/admin/class-bachs-pf-admin.php:217
 msgid "Both optional."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:217
+#: includes/admin/class-bachs-pf-admin.php:218
 msgid "One option per line, as \"Label | amount\":"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:221
-#: includes/admin/class-bachs-pf-admin.php:456
+#: includes/admin/class-bachs-pf-admin.php:222
+#: includes/admin/class-bachs-pf-admin.php:457
 #: includes/class-bachs-pf-emails.php:108
 #: includes/class-bachs-pf-forms.php:96
 #: includes/class-bachs-pf-renderer.php:173
 msgid "Quantity"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:222
+#: includes/admin/class-bachs-pf-admin.php:223
 msgid "Let the payer choose a quantity"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:223
+#: includes/admin/class-bachs-pf-admin.php:224
 msgid "Maximum per payment"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:224
+#: includes/admin/class-bachs-pf-admin.php:225
 msgid "Label"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:225
+#: includes/admin/class-bachs-pf-admin.php:226
 msgid "Stock"
 msgstr ""
 
 #. translators: %d: units sold
-#: includes/admin/class-bachs-pf-admin.php:228
+#: includes/admin/class-bachs-pf-admin.php:229
 msgid "Leave empty for unlimited. %d sold so far."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:230
+#: includes/admin/class-bachs-pf-admin.php:231
 msgid "Leave empty for unlimited."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:236
+#: includes/admin/class-bachs-pf-admin.php:237
 msgid "One-time payments only"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:237
+#: includes/admin/class-bachs-pf-admin.php:238
 msgid "Always recurring"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:238
+#: includes/admin/class-bachs-pf-admin.php:239
 msgid "Payer chooses one-time or recurring"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:240
+#: includes/admin/class-bachs-pf-admin.php:241
 msgid "Recurring"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:245
-#: includes/admin/class-bachs-pf-admin.php:457
+#: includes/admin/class-bachs-pf-admin.php:246
+#: includes/admin/class-bachs-pf-admin.php:458
 #: includes/class-bachs-pf-emails.php:111
 msgid "Billing"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:250
+#: includes/admin/class-bachs-pf-admin.php:251
 msgid "Schedules offered:"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:255
+#: includes/admin/class-bachs-pf-admin.php:256
 msgid "Recurring payments use Bachs subscriptions, which currently bill USD cards only. You can cancel a subscription from your Bachs dashboard."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:259
+#: includes/admin/class-bachs-pf-admin.php:260
 msgid "Button label"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:260
+#: includes/admin/class-bachs-pf-admin.php:261
 msgid "Success message"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:261
+#: includes/admin/class-bachs-pf-admin.php:262
 msgid "Redirect after payment"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:261
+#: includes/admin/class-bachs-pf-admin.php:262
 msgid "Optional. Leave empty to show the success message on the form's page. A redirect page should also contain this form's shortcode, so the payer can see their payment status."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:262
+#: includes/admin/class-bachs-pf-admin.php:263
 msgid "Terms page"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:262
+#: includes/admin/class-bachs-pf-admin.php:263
 msgid "Optional. When set, payers must tick a box accepting these terms."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:264
+#: includes/admin/class-bachs-pf-admin.php:265
 msgid "Options"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:265
+#: includes/admin/class-bachs-pf-admin.php:266
 msgid "Only logged-in users can pay"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:266
+#: includes/admin/class-bachs-pf-admin.php:267
 msgid "Email the payer a receipt"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:267
+#: includes/admin/class-bachs-pf-admin.php:268
 msgid "Email me about each payment"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:320
-#: includes/admin/class-bachs-pf-admin.php:463
+#: includes/admin/class-bachs-pf-admin.php:321
+#: includes/admin/class-bachs-pf-admin.php:464
 #: includes/admin/class-bachs-pf-payments-table.php:35
 msgid "Paid"
 msgstr ""
 
 #. translators: %s: currency code
-#: includes/admin/class-bachs-pf-admin.php:343
+#: includes/admin/class-bachs-pf-admin.php:344
 msgid "Choice of amounts (%s)"
 msgstr ""
 
 #. translators: %s: currency code
-#: includes/admin/class-bachs-pf-admin.php:346
+#: includes/admin/class-bachs-pf-admin.php:347
 msgid "Payer enters amount (%s)"
 msgstr ""
 
 #. translators: %s: comma-separated currency codes
-#: includes/admin/class-bachs-pf-admin.php:350
+#: includes/admin/class-bachs-pf-admin.php:351
 msgid "Also in %s"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:353
+#: includes/admin/class-bachs-pf-admin.php:354
 msgid "One-time or recurring"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:374
+#: includes/admin/class-bachs-pf-admin.php:375
 msgid "View payments"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:386
+#: includes/admin/class-bachs-pf-admin.php:387
 msgid "You do not have permission to view payments."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:416
+#: includes/admin/class-bachs-pf-admin.php:417
 msgid "Export CSV"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:421
+#: includes/admin/class-bachs-pf-admin.php:422
 msgid "Webhook settings"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:431
+#: includes/admin/class-bachs-pf-admin.php:432
 msgid "Search payments"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:443
+#: includes/admin/class-bachs-pf-admin.php:444
 msgid "Payment"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:443
+#: includes/admin/class-bachs-pf-admin.php:444
 msgid "All payments"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:446
+#: includes/admin/class-bachs-pf-admin.php:447
 msgid "Payment not found."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:451
+#: includes/admin/class-bachs-pf-admin.php:452
 #: includes/admin/class-bachs-pf-payments-table.php:50
 msgid "Status"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:452
+#: includes/admin/class-bachs-pf-admin.php:453
 #: includes/admin/class-bachs-pf-payments-table.php:51
 #: includes/class-bachs-pf-emails.php:102
 msgid "Form"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:453
+#: includes/admin/class-bachs-pf-admin.php:454
 #: includes/class-bachs-pf-emails.php:114
 msgid "Name"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:454
+#: includes/admin/class-bachs-pf-admin.php:455
 #: includes/class-bachs-pf-emails.php:115
 #: includes/class-bachs-pf-renderer.php:166
 msgid "Email"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:458
+#: includes/admin/class-bachs-pf-admin.php:459
 #: includes/admin/class-bachs-pf-payments-table.php:52
 #: includes/class-bachs-pf-emails.php:104
 msgid "Reference"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:459
+#: includes/admin/class-bachs-pf-admin.php:460
 msgid "Environment"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:459
+#: includes/admin/class-bachs-pf-admin.php:460
 msgid "Test (sandbox)"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:459
+#: includes/admin/class-bachs-pf-admin.php:460
 msgid "Live"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:460
+#: includes/admin/class-bachs-pf-admin.php:461
 msgid "Created"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:466
+#: includes/admin/class-bachs-pf-admin.php:467
 msgid "Amount received"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:469
+#: includes/admin/class-bachs-pf-admin.php:470
 msgid "Settled"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:472
+#: includes/admin/class-bachs-pf-admin.php:473
 msgid "Bachs checkout"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:473
+#: includes/admin/class-bachs-pf-admin.php:474
 #: includes/class-bachs-pf-emails.php:117
 msgid "Bachs charge"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:474
+#: includes/admin/class-bachs-pf-admin.php:475
 msgid "Bachs customer"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:475
+#: includes/admin/class-bachs-pf-admin.php:476
 msgid "Bachs subscription"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:476
+#: includes/admin/class-bachs-pf-admin.php:477
 msgid "Subscription status"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:483
+#: includes/admin/class-bachs-pf-admin.php:484
 #: includes/admin/class-bachs-pf-payments-table.php:36
 msgid "Needs review"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:495
+#: includes/admin/class-bachs-pf-admin.php:496
 msgid "Bachs confirms this payment was made. It is now marked paid."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:496
+#: includes/admin/class-bachs-pf-admin.php:497
 msgid "Bachs confirms a payment was made, but it needs review: see \"Needs review\" below."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:497
+#: includes/admin/class-bachs-pf-admin.php:498
 msgid "Bachs reports that this checkout ended without payment."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:498
 #: includes/admin/class-bachs-pf-admin.php:499
+#: includes/admin/class-bachs-pf-admin.php:500
 msgid "Bachs has not received this payment yet."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:500
+#: includes/admin/class-bachs-pf-admin.php:501
 msgid "Could not reach Bachs. Check your API key in Settings and try again."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:518
+#: includes/admin/class-bachs-pf-admin.php:519
 msgid "Check status with Bachs"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:519
+#: includes/admin/class-bachs-pf-admin.php:520
 msgid "Asks Bachs whether this checkout was paid and updates the payment. Payments are also checked automatically every hour for three days."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:532
+#: includes/admin/class-bachs-pf-admin.php:533
 msgid "You do not have permission to do that."
 msgstr ""
 
 #. translators: 1: time ago, 2: reason
-#: includes/admin/class-bachs-pf-admin.php:560
+#: includes/admin/class-bachs-pf-admin.php:561
 msgid "The last webhook from Bachs, %1$s ago, was rejected: %2$s"
 msgstr ""
 
 #. translators: 1: time ago, 2: event type
-#: includes/admin/class-bachs-pf-admin.php:571
+#: includes/admin/class-bachs-pf-admin.php:572
 msgid "Working. Last webhook received %1$s ago (%2$s)."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:579
+#: includes/admin/class-bachs-pf-admin.php:580
 msgid "No webhook received from Bachs yet. Payments are still confirmed when payers return to your site and by an hourly check, but set up the webhook so they are confirmed instantly."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:588
+#: includes/admin/class-bachs-pf-admin.php:589
 msgid "You do not have permission to export payments."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:743
+#: includes/admin/class-bachs-pf-admin.php:744
 msgid "Bachs Payment Forms settings"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:749
+#: includes/admin/class-bachs-pf-admin.php:750
 msgid "Test mode"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:749
+#: includes/admin/class-bachs-pf-admin.php:750
 msgid "Use the Bachs sandbox and sandbox keys"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:752
+#: includes/admin/class-bachs-pf-admin.php:753
 msgid "Sandbox API key"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:753
+#: includes/admin/class-bachs-pf-admin.php:754
 msgid "Sandbox webhook signing secret"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:754
+#: includes/admin/class-bachs-pf-admin.php:755
 msgid "Live API key"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:755
+#: includes/admin/class-bachs-pf-admin.php:756
 msgid "Live webhook signing secret"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:760
+#: includes/admin/class-bachs-pf-admin.php:761
 msgid "Saved. Leave blank to keep."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:762
+#: includes/admin/class-bachs-pf-admin.php:763
 msgid "Remove"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:767
+#: includes/admin/class-bachs-pf-admin.php:768
 msgid "Webhook URL"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:768
+#: includes/admin/class-bachs-pf-admin.php:769
 msgid "Add this URL as a webhook endpoint in your Bachs developer portal (sandbox and live), subscribe it to these events, then paste each signing secret above:"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:777
+#: includes/admin/class-bachs-pf-admin.php:778
 msgid "Webhook status"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:779
+#: includes/admin/class-bachs-pf-admin.php:780
 msgid "Notification email"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:779
+#: includes/admin/class-bachs-pf-admin.php:780
 msgid "Where payment notifications go. Defaults to the site admin email."
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:781
+#: includes/admin/class-bachs-pf-admin.php:782
 msgid "Debug log"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:781
+#: includes/admin/class-bachs-pf-admin.php:782
 msgid "Log informational events too (errors are always logged)"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:783
+#: includes/admin/class-bachs-pf-admin.php:784
 msgid "Uninstall"
 msgstr ""
 
-#: includes/admin/class-bachs-pf-admin.php:783
+#: includes/admin/class-bachs-pf-admin.php:784
 msgid "Delete all forms and payment records when the plugin is deleted"
 msgstr ""
 

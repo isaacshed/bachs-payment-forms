@@ -84,7 +84,8 @@ class Bachs_PF_Admin {
 			return;
 		}
 
-		$ours = Bachs_PF_Forms::POST_TYPE === $screen->post_type || 'plugins' === $screen->id;
+		// Only on the plugin's own screens (forms, payments, settings).
+		$ours = Bachs_PF_Forms::POST_TYPE === $screen->post_type;
 		if ( ! $ours ) {
 			return;
 		}
