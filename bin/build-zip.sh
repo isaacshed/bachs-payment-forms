@@ -32,4 +32,4 @@ rm -f "$OUT"
 git archive --format=zip --prefix="$SLUG/" -o "$OUT" "$REF"
 
 echo "$OUT"
-unzip -l "$OUT" | tail -n +4 | head -n -2 | awk '{print $4}'
+unzip -Z1 "$OUT"
