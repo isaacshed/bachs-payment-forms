@@ -136,6 +136,7 @@ When a payer submits a form, the plugin sends the following to Bachs (`https://a
 * The amount, currency and, for recurring payments, the billing schedule
 * A payment reference and internal payment and form IDs
 * The addresses of the pages the payer returns to after paying
+* Your site's address, this plugin's name and version, and the WordPress version, so payments can be told apart by integration in your Bachs dashboard
 
 For a recurring form, the plugin also creates a Bachs product named after the form. The answers to your own form fields are stored in WordPress only and are not sent to Bachs.
 

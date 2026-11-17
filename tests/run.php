@@ -260,6 +260,8 @@ $pay = Bachs_PF_Payments::get( 1 );
 check( 'one-time: redirect to checkout', 'https://checkout.bachs.io/c/chk_1' === $url );
 check( 'one-time: ad-hoc pricing at the total', '40.00' === $req['body']['pricing']['amount'] && 'USD' === $req['body']['pricing']['currency'] && ! isset( $req['body']['product_cart'] ) );
 check( 'one-time: metadata links back to the payment', '1' === $req['body']['metadata']['bachs_pf_payment_id'] );
+$meta = $req['body']['metadata'];
+check( 'one-time: integration metadata', 'wordpress-payment-forms' === $meta['source'] && 'bachs-payment-forms' === $meta['integration'] && BACHS_PF_VERSION === $meta['integration_version'] && '7.1' === $meta['platform_version'] && 'https://site.example' === $meta['site_url'] );
 check( 'one-time: reference + idempotency key', $pay->reference === $req['body']['reference'] && 'bachs-pf-' . $pay->reference === $req['headers']['Idempotency-Key'] );
 check( 'one-time: return URL carries the access key', false !== strpos( $req['body']['success_url'], 'bachs_pf_key=' . $pay->access_key ) );
 check( 'one-time: stored pending with checkout id', 'pending' === $pay->status && 'chk_1' === $pay->checkout_id && 1 === (int) $pay->attempts );

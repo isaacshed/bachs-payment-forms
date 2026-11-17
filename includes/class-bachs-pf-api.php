@@ -88,7 +88,7 @@ class Bachs_PF_API {
 			if ( 'GET' === $method ) {
 				$url = add_query_arg( array_map( 'rawurlencode', $body ), $url );
 			} else {
-				$args['body'] = wp_json_encode( $body );
+				$args['body'] = wp_json_encode( self::add_integration_metadata( $body ) );
 			}
 		}
 
@@ -150,5 +150,26 @@ class Bachs_PF_API {
 	 */
 	public static function reset() {
 		self::$clients = array();
+	}
+
+	/**
+	 * Add the integration details to a request's metadata, so Bachs can report on payments by
+	 * integration: plugin, plugin version, WordPress version and site address. Keys the request
+	 * already has are kept.
+	 *
+	 * @param mixed $body
+	 * @return mixed
+	 */
+	public static function add_integration_metadata( $body ) {
+		if ( ! is_array( $body ) || ! isset( $body['metadata'] ) || ! is_array( $body['metadata'] ) ) {
+			return $body;
+		}
+		$body['metadata'] = $body['metadata'] + array(
+			'integration'         => 'bachs-payment-forms',
+			'integration_version' => (string) BACHS_PF_VERSION,
+			'platform_version'    => (string) ( get_bloginfo( 'version' ) ),
+			'site_url'            => (string) home_url(),
+		);
+		return $body;
 	}
 }

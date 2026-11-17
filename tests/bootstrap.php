@@ -213,7 +213,7 @@ function untrailingslashit( $s ) { return rtrim( $s, '/' ); }
 function number_format_i18n( $n, $d = 0 ) { return number_format( (float) $n, $d ); }
 function wp_strip_all_tags( $t ) { return strip_tags( (string) $t ); }
 function wp_specialchars_decode( $t, $q = 0 ) { return htmlspecialchars_decode( (string) $t, ENT_QUOTES ); }
-function get_bloginfo( $k = '' ) { return 'Test Site'; }
+function get_bloginfo( $k = '' ) { return 'version' === $k ? '7.1' : 'Test Site'; }
 function current_time( $type, $gmt = 0 ) { return gmdate( 'Y-m-d H:i:s' ); }
 function wp_generate_password( $len = 12, $special = true, $extra = false ) {
 	$chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
