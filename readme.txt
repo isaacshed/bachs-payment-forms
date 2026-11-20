@@ -1,5 +1,5 @@
 === Bachs Payment Forms ===
-Contributors: bachs, isaacshed, geekydaniel
+Contributors: bachs
 Tags: payment form, donations, bachs, recurring payments, africa
 Requires at least: 6.2
 Tested up to: 7.1

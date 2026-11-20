@@ -43,17 +43,12 @@ class Bachs_PF_Checkout {
 	 * AJAX: submit a form.
 	 */
 	public static function ajax_submit() {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce values are only compared.
-		$nonce = isset( $_POST['bachs_pf_nonce'] ) ? wp_unslash( $_POST['bachs_pf_nonce'] ) : '';
-
-		if ( ! wp_verify_nonce( $nonce, self::NONCE_ACTION ) ) {
+		if ( ! isset( $_POST['bachs_pf_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bachs_pf_nonce'] ) ), self::NONCE_ACTION ) ) {
 			self::send_error( __( 'This form has expired. Please refresh the page and try again.', 'bachs-payment-forms' ) );
 		}
 
 		$form_id = isset( $_POST['bachs_pf_form_id'] ) ? absint( $_POST['bachs_pf_form_id'] ) : 0;
-		$input   = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each value is sanitised by build_payment() / Bachs_PF_Fields.
-
-		$result = self::start_payment( $form_id, is_array( $input ) ? $input : array() );
+		$result  = self::start_payment( $form_id, self::read_submission( $form_id ) );
 
 		if ( is_wp_error( $result ) ) {
 			self::send_error( $result->get_error_message() );
@@ -63,10 +58,46 @@ class Bachs_PF_Checkout {
 	}
 
 	/**
-	 * Validate a submission, store the payment and create its checkout session.
+	 * Read a form submission, sanitising each value as soon as it is read.
+	 *
+	 * @param int $form_id
+	 * @return array
+	 */
+	public static function read_submission( $form_id ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Called from ajax_submit() after its nonce check.
+		$input = array();
+
+		foreach ( array( 'bachs_pf_name', 'bachs_pf_amount', 'bachs_pf_currency', 'bachs_pf_cadence', 'bachs_pf_option', 'bachs_pf_quantity', 'bachs_pf_terms' ) as $key ) {
+			if ( isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ) {
+				$input[ $key ] = sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
+			}
+		}
+		if ( isset( $_POST['bachs_pf_email'] ) && is_scalar( $_POST['bachs_pf_email'] ) ) {
+			$input['bachs_pf_email'] = sanitize_email( wp_unslash( $_POST['bachs_pf_email'] ) );
+		}
+		if ( isset( $_POST['bachs_pf_page'] ) && is_scalar( $_POST['bachs_pf_page'] ) ) {
+			$input['bachs_pf_page'] = esc_url_raw( wp_unslash( $_POST['bachs_pf_page'] ), array( 'http', 'https' ) );
+		}
+
+		// Custom fields: each one with the sanitiser for its type.
+		$form = Bachs_PF_Forms::get_form( $form_id );
+		if ( $form && isset( $_POST['bachs_pf_fields'] ) && is_array( $_POST['bachs_pf_fields'] ) ) {
+			$input['bachs_pf_fields'] = Bachs_PF_Fields::sanitize(
+				Bachs_PF_Fields::definitions( $form->post_content ),
+				wp_unslash( $_POST['bachs_pf_fields'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised field by field in Bachs_PF_Fields::sanitize().
+			);
+		}
+		// phpcs:enable
+
+		return $input;
+	}
+
+	/**
+	 * Validate a submission (already sanitised by read_submission()), store the payment and
+	 * create its checkout session.
 	 *
 	 * @param int   $form_id
-	 * @param array $input Unslashed POST data.
+	 * @param array $input
 	 * @return string|WP_Error Checkout URL.
 	 */
 	public static function start_payment( $form_id, $input ) {
@@ -346,9 +377,7 @@ class Bachs_PF_Checkout {
 	 * AJAX: pay again for an unpaid payment, from the payer's own status link.
 	 */
 	public static function ajax_retry() {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce values are only compared.
-		$nonce = isset( $_POST['bachs_pf_nonce'] ) ? wp_unslash( $_POST['bachs_pf_nonce'] ) : '';
-		if ( ! wp_verify_nonce( $nonce, self::NONCE_ACTION ) ) {
+		if ( ! isset( $_POST['bachs_pf_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['bachs_pf_nonce'] ) ), self::NONCE_ACTION ) ) {
 			self::send_error( __( 'This page has expired. Please refresh it and try again.', 'bachs-payment-forms' ) );
 		}
 

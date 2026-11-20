@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-16T13:00:21+00:00\n"
+"POT-Creation-Date: 2026-11-20T15:50:50+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: bachs-payment-forms\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #. Plugin URI of the plugin
 #: bachs-payment-forms.php
-msgid "https://bachs.io/wordpress/"
+msgid "https://bachs.io/wordpress"
 msgstr ""
 
 #. Description of the plugin
@@ -590,132 +590,132 @@ msgstr ""
 msgid "No payments yet."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:50
+#: includes/class-bachs-pf-checkout.php:47
 msgid "This form has expired. Please refresh the page and try again."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:76
+#: includes/class-bachs-pf-checkout.php:107
 msgid "This payment form is not available."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:81
-#: includes/class-bachs-pf-checkout.php:330
-#: includes/class-bachs-pf-checkout.php:589
+#: includes/class-bachs-pf-checkout.php:112
+#: includes/class-bachs-pf-checkout.php:361
+#: includes/class-bachs-pf-checkout.php:618
 msgid "Payments are not available right now. Please try again later."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:87
+#: includes/class-bachs-pf-checkout.php:118
 msgid "Please log in to use this form."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:98
+#: includes/class-bachs-pf-checkout.php:129
 #: includes/class-bachs-pf-renderer.php:49
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:121
+#: includes/class-bachs-pf-checkout.php:152
 msgid "Please enter your name."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:124
+#: includes/class-bachs-pf-checkout.php:155
 msgid "Please enter a valid email address."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:135
+#: includes/class-bachs-pf-checkout.php:166
 msgid "Please choose one of the currencies offered on this form."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:144
+#: includes/class-bachs-pf-checkout.php:175
 msgid "Please enter a valid amount."
 msgstr ""
 
 #. translators: %s: minimum amount with currency
-#: includes/class-bachs-pf-checkout.php:148
+#: includes/class-bachs-pf-checkout.php:179
 msgid "The minimum amount is %s."
 msgstr ""
 
 #. translators: %s: maximum amount with currency
-#: includes/class-bachs-pf-checkout.php:151
+#: includes/class-bachs-pf-checkout.php:182
 msgid "The maximum amount is %s."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:159
+#: includes/class-bachs-pf-checkout.php:190
 msgid "Please choose an amount."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:169
+#: includes/class-bachs-pf-checkout.php:200
 msgid "This form has no amount set."
 msgstr ""
 
 #. translators: %d: maximum quantity
-#: includes/class-bachs-pf-checkout.php:179
+#: includes/class-bachs-pf-checkout.php:210
 msgid "Please choose a quantity between 1 and %d."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:188
-#: includes/class-bachs-pf-checkout.php:408
+#: includes/class-bachs-pf-checkout.php:219
+#: includes/class-bachs-pf-checkout.php:437
 #: includes/class-bachs-pf-renderer.php:146
 msgid "Sorry, this is sold out."
 msgstr ""
 
 #. translators: %d: units left
-#: includes/class-bachs-pf-checkout.php:190
+#: includes/class-bachs-pf-checkout.php:221
 msgid "Sorry, only %d is left."
 msgid_plural "Sorry, only %d are left."
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-bachs-pf-checkout.php:203
+#: includes/class-bachs-pf-checkout.php:234
 msgid "Please choose a valid payment schedule."
 msgstr ""
 
 #. translators: %s: currency code
-#: includes/class-bachs-pf-checkout.php:209
+#: includes/class-bachs-pf-checkout.php:240
 msgid "Recurring payments are not available in %s. Choose a one-time payment, or pay in USD."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:214
+#: includes/class-bachs-pf-checkout.php:245
 msgid "Please accept the terms to continue."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:234
+#: includes/class-bachs-pf-checkout.php:265
 msgid "Option"
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:352
+#: includes/class-bachs-pf-checkout.php:381
 msgid "This page has expired. Please refresh it and try again."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:376
+#: includes/class-bachs-pf-checkout.php:405
 msgid "This payment link is not valid."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:380
-#: includes/class-bachs-pf-checkout.php:393
+#: includes/class-bachs-pf-checkout.php:409
+#: includes/class-bachs-pf-checkout.php:422
 msgid "This payment has already been made."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:385
+#: includes/class-bachs-pf-checkout.php:414
 msgid "This payment form is no longer available."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:399
+#: includes/class-bachs-pf-checkout.php:428
 msgid "We have received your payment and are confirming it. There is no need to pay again."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:402
+#: includes/class-bachs-pf-checkout.php:431
 msgid "We could not check your payment just now. Please try again in a moment."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:580
+#: includes/class-bachs-pf-checkout.php:609
 msgid "This amount is above the limit for a single payment. Please choose a smaller amount."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:584
+#: includes/class-bachs-pf-checkout.php:613
 msgid "Payments in this currency are not available right now."
 msgstr ""
 
-#: includes/class-bachs-pf-checkout.php:587
+#: includes/class-bachs-pf-checkout.php:616
 msgid "This amount is below the minimum for a payment."
 msgstr ""
 
@@ -762,50 +762,50 @@ msgid "Payment form"
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:126
+#: includes/class-bachs-pf-fields.php:146
 msgid "%s is required."
 msgstr ""
 
-#: includes/class-bachs-pf-fields.php:161
+#: includes/class-bachs-pf-fields.php:181
 msgid "Yes"
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:195
+#: includes/class-bachs-pf-fields.php:215
 msgid "%s is too long."
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:201
+#: includes/class-bachs-pf-fields.php:221
 msgid "%s must be a valid email address."
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:204
+#: includes/class-bachs-pf-fields.php:224
 msgid "%s must be a number."
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:208
+#: includes/class-bachs-pf-fields.php:228
 msgid "%s must be a valid date."
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:211
+#: includes/class-bachs-pf-fields.php:231
 msgid "%s must be a valid web address."
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:215
+#: includes/class-bachs-pf-fields.php:235
 msgid "Choose a valid option for %s."
 msgstr ""
 
 #. translators: %s: field label
-#: includes/class-bachs-pf-fields.php:219
+#: includes/class-bachs-pf-fields.php:239
 msgid "Choose valid options for %s."
 msgstr ""
 
-#: includes/class-bachs-pf-fields.php:252
+#: includes/class-bachs-pf-fields.php:272
 msgid "Choose…"
 msgstr ""
 

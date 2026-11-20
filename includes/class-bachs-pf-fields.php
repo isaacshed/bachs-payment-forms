@@ -103,10 +103,30 @@ class Bachs_PF_Fields {
 	}
 
 	/**
+	 * Sanitise submitted values as soon as they are read: each defined field with the sanitiser
+	 * for its type (sanitize_email, esc_url_raw, sanitize_textarea_field...). Values for fields the
+	 * form doesn't define are dropped.
+	 *
+	 * @param array $definitions
+	 * @param mixed $input Unslashed $_POST['bachs_pf_fields'].
+	 * @return array key => sanitised value.
+	 */
+	public static function sanitize( $definitions, $input ) {
+		$input = is_array( $input ) ? $input : array();
+		$clean = array();
+		foreach ( $definitions as $key => $field ) {
+			if ( isset( $input[ $key ] ) ) {
+				$clean[ $key ] = self::clean( $field, $input[ $key ] );
+			}
+		}
+		return $clean;
+	}
+
+	/**
 	 * Validate submitted values against the definitions.
 	 *
 	 * @param array $definitions
-	 * @param array $input Unslashed $_POST['bachs_pf_fields'].
+	 * @param array $input Values from sanitize().
 	 * @return array{values: array, errors: string[]} values: key => array( label, value ).
 	 */
 	public static function validate( $definitions, $input ) {

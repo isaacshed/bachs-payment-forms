@@ -287,8 +287,8 @@ class Bachs_PF_Admin {
 		}
 
 		// Unchecked checkboxes are absent from POST.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised by Bachs_PF_Forms::sanitize_settings().
-		$input = isset( $_POST['bachs_pf'] ) && is_array( $_POST['bachs_pf'] ) ? wp_unslash( $_POST['bachs_pf'] ) : array();
+		// Sanitised as soon as it is read; sanitize_settings() then validates each setting by its type.
+		$input = isset( $_POST['bachs_pf'] ) && is_array( $_POST['bachs_pf'] ) ? map_deep( wp_unslash( $_POST['bachs_pf'] ), array( __CLASS__, 'sanitize_setting_value' ) ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- map_deep() sanitises every value.
 		foreach ( array( 'quantity', 'multi_currency', 'require_login', 'send_receipt', 'notify_admin' ) as $box ) {
 			if ( ! isset( $input[ $box ] ) ) {
 				$input[ $box ] = 'no';
@@ -786,5 +786,24 @@ class Bachs_PF_Admin {
 		echo '</tbody></table>';
 		submit_button();
 		echo '</form></div>';
+	}
+
+	/**
+	 * Sanitise one posted setting value: plain text with line breaks kept (the success message is
+	 * multi-line). URLs keep their percent-encoding, which text sanitising would strip, and are
+	 * checked again with esc_url_raw() in Bachs_PF_Forms::sanitize_settings().
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	public static function sanitize_setting_value( $value ) {
+		if ( ! is_string( $value ) ) {
+			return $value;
+		}
+		$trimmed = trim( $value );
+		if ( preg_match( '#^https?://#i', $trimmed ) ) {
+			return esc_url_raw( $trimmed, array( 'http', 'https' ) );
+		}
+		return sanitize_textarea_field( $value );
 	}
 }

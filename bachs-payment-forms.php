@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Bachs Payment Forms
- * Plugin URI: https://bachs.io/wordpress/
+ * Plugin URI: https://bachs.io/wordpress
  * Description: Create payment forms that collect one-time or recurring payments through Bachs: card, bank transfer, mobile money and crypto, in different currencies.
  * Version: 1.0.0
  * Author: Bachs

@@ -53,7 +53,7 @@ class Bachs_PF_Payments_Table extends WP_List_Table {
 			'created' => __( 'Date', 'bachs-payment-forms' ),
 		);
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter.
-		if ( ! empty( $_GET['form_id'] ) ) {
+		if ( isset( $_GET['form_id'] ) && absint( $_GET['form_id'] ) > 0 ) {
 			unset( $columns['form'] );
 		}
 		return $columns;
